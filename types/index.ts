@@ -49,6 +49,7 @@ export interface StudentTransportProfile {
   boardingPoint?: string;
   transportStatus: 'active' | 'inactive' | 'suspended';
   paymentStatus: 'current' | 'overdue' | 'suspended';
+  enrollmentStatus: 'pending' | 'approved' | 'rejected' | 'enrolled';
   totalFines: number;
   outstandingAmount: number;
   semesterFeePaid: boolean;

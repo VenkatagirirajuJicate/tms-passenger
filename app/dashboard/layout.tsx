@@ -14,13 +14,14 @@ import {
   Menu, 
   X,
   Bus,
-  MapPin
+  MapPin,
+  Settings,
+  BarChart3
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sessionManager } from '@/lib/session';
 import { Student } from '@/types';
 import NotificationCenter from '@/components/notification-center';
-import NotificationBanner from '@/components/notification-banner';
 
 interface NavigationItem {
   name: string;
@@ -51,57 +52,51 @@ export default function DashboardLayout({
     { name: 'Profile', href: '/dashboard/profile', icon: User, current: pathname === '/dashboard/profile' },
   ], [pathname]);
 
+  const studentId = student?.id;
+
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        if (!sessionManager.isAuthenticated()) {
-          router.replace('/login');
-          return;
-        }
+    checkSession();
+  }, []);
 
-        const currentStudent = sessionManager.getCurrentStudent();
-        if (currentStudent) {
-          // Create a stable student object
-          setStudent(prev => {
-            // Only update if the student ID has changed
-            if (prev?.id === currentStudent.student_id) {
-              return prev;
-            }
-            
-            return {
-              id: currentStudent.student_id,
-              studentName: currentStudent.student_name,
-              rollNumber: currentStudent.roll_number,
-              email: sessionManager.getSession()?.user?.email || '',
-              mobile: '',
-              firstLoginCompleted: true,
-              profileCompletionPercentage: 0,
-              createdAt: new Date(),
-              updatedAt: new Date()
-            } as Student;
-          });
-        }
-      } catch (error) {
-        console.error('Auth check error:', error);
-        router.replace('/login');
-      } finally {
-        setIsLoading(false);
+  const checkSession = async () => {
+    try {
+      const session = sessionManager.getSession();
+      if (!session) {
+        router.push('/login');
+        return;
       }
-    };
 
-    checkAuth();
-  }, [router]); // Only depend on router, not pathname
-
-  // Memoize the student ID to prevent unnecessary re-renders of NotificationCenter
-  const studentId = useMemo(() => student?.id || '', [student?.id]);
+      const currentStudent = sessionManager.getCurrentStudent();
+      if (currentStudent) {
+        setStudent({
+          id: currentStudent.student_id,
+          studentName: currentStudent.student_name,
+          rollNumber: currentStudent.roll_number,
+          email: session.user?.email || '',
+          mobile: '',
+          firstLoginCompleted: true,
+          profileCompletionPercentage: 0,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        } as Student);
+      } else {
+        router.push('/login');
+      }
+    } catch (error) {
+      console.error('Session check failed:', error);
+      router.push('/login');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleLogout = async () => {
     try {
       sessionManager.clearSession();
       toast.success('Logged out successfully');
-      router.replace('/login');
+      router.push('/login');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('Logout failed:', error);
       toast.error('Failed to logout');
     }
   };
@@ -110,198 +105,249 @@ export default function DashboardLayout({
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Bus className="h-8 w-8 animate-pulse text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading dashboard...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Loading dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="h-screen bg-gray-50 overflow-hidden">
-      {/* Mobile sidebar */}
-      <div className={`fixed inset-0 z-40 lg:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
+    <div className="h-screen bg-gray-50 overflow-hidden flex">
+      {/* Enhanced Mobile sidebar */}
+      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
         <div
-          className={`fixed inset-0 bg-gray-600 bg-opacity-75 transition-opacity duration-300 ease-linear ${
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300 ease-out ${
             sidebarOpen ? 'opacity-100' : 'opacity-0'
           }`}
           onClick={() => setSidebarOpen(false)}
         />
         <div
-          className={`fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl transition-transform duration-300 ease-in-out transform ${
+          className={`fixed inset-y-0 left-0 flex w-80 flex-col bg-white shadow-2xl transition-all duration-300 ease-out transform ${
             sidebarOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="flex h-16 items-center justify-between px-4 border-b border-gray-200">
-            <div className="flex items-center">
-              <Bus className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-lg font-semibold text-gray-900">TMS Student</span>
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-100">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+                <Bus className="h-6 w-6 text-white" />
+              </div>
+                             <div>
+                 <h1 className="text-lg font-bold text-gray-900">TMS Student</h1>
+                 <p className="text-sm text-gray-500">Transport Management</p>
+               </div>
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="text-gray-400 hover:text-gray-600"
+              className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
             >
-              <X className="h-6 w-6" />
+              <X className="h-5 w-5 text-gray-400" />
             </button>
           </div>
-          <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-            {navigation.map((item) => (
+
+          {/* Navigation */}
+          <nav className="flex-1 px-6 py-8 space-y-2 overflow-y-auto">
+            <div className="mb-8">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">MENU</p>
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  onClick={() => setSidebarOpen(false)}
+                  className={`sidebar-nav-item ${item.current ? 'active' : ''} mb-1`}
+                >
+                  <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <span className="font-medium">{item.name}</span>
+                </Link>
+              ))}
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">GENERAL</p>
               <Link
-                key={item.name}
-                href={item.href}
-                onClick={() => setSidebarOpen(false)}
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                  item.current
-                    ? 'bg-blue-100 text-blue-900 border-r-2 border-blue-600'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }`}
+                href="/dashboard/settings"
+                className="sidebar-nav-item mb-1"
               >
-                <item.icon
-                  className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                    item.current ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
-                  }`}
-                />
-                {item.name}
+                <Settings className="h-5 w-5 mr-3 flex-shrink-0" />
+                <span className="font-medium">Settings</span>
               </Link>
-            ))}
+            </div>
           </nav>
-          <div className="border-t border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                <span className="text-sm font-medium text-white">
-                  {student?.studentName?.charAt(0).toUpperCase()}
-                </span>
+
+          {/* User Profile */}
+          <div className="border-t border-gray-100 p-6">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="relative">
+                <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                  <span className="text-sm font-bold text-white">
+                    {student?.studentName?.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
-              <div className="ml-3 flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 truncate">
                   {student?.studentName}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {student?.rollNumber}
+                  {student?.email || 'student@email.com'}
                 </p>
               </div>
             </div>
             <button
               onClick={handleLogout}
-              className="mt-3 w-full flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+              className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
             >
-              <LogOut className="mr-3 h-5 w-5 text-gray-400" />
-              Sign out
+              <LogOut className="h-4 w-4 mr-3" />
+              Logout
             </button>
           </div>
         </div>
       </div>
 
       {/* Desktop sidebar */}
-      <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-white shadow-lg">
-        <div className="flex h-16 items-center px-4 border-b border-gray-200">
-          <Bus className="h-8 w-8 text-blue-600" />
-          <span className="ml-2 text-lg font-semibold text-gray-900">TMS Student</span>
-        </div>
-        <nav className="flex-1 px-4 py-4 space-y-2 overflow-y-auto">
-          {navigation.map((item) => (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                item.current
-                  ? 'bg-blue-100 text-blue-900 border-r-2 border-blue-600'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              }`}
-            >
-              <item.icon
-                className={`mr-3 h-5 w-5 flex-shrink-0 ${
-                  item.current ? 'text-blue-600' : 'text-gray-400 group-hover:text-gray-500'
-                }`}
-              />
-              {item.name}
-            </Link>
-          ))}
-        </nav>
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center">
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {student?.studentName?.charAt(0).toUpperCase()}
-              </span>
+      <div className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0 bg-white border-r border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-gray-100">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center">
+              <Bus className="h-6 w-6 text-white" />
             </div>
-            <div className="ml-3 flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {student?.studentName}
+            <div>
+              <h1 className="text-lg font-bold text-gray-900">TMS Student</h1>
+              <p className="text-sm text-gray-500">Transport Management System</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="flex-1 px-6 py-8 space-y-2 overflow-y-auto">
+          <div className="mb-8">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">MENU</p>
+            {navigation.map((item) => (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={`sidebar-nav-item ${item.current ? 'active' : ''} mb-1`}
+              >
+                <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                <span className="font-medium">{item.name}</span>
+              </Link>
+            ))}
+          </div>
+
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">GENERAL</p>
+            <Link
+              href="/dashboard/settings"
+              className="sidebar-nav-item mb-1"
+            >
+              <Settings className="h-5 w-5 mr-3 flex-shrink-0" />
+              <span className="font-medium">Settings</span>
+            </Link>
+          </div>
+        </nav>
+        
+        {/* User Profile */}
+        <div className="border-t border-gray-100 p-6">
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="relative">
+              <img
+                src="/api/placeholder/40/40"
+                alt={student?.studentName}
+                className="h-10 w-10 rounded-full object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+              <div className="hidden h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
+                <span className="text-sm font-bold text-white">
+                  {student?.studentName?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900 truncate">
+                {student?.studentName || 'Student'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {student?.rollNumber}
+                {student?.email || 'student@email.com'}
               </p>
             </div>
           </div>
           <button
             onClick={handleLogout}
-            className="mt-3 w-full flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-md hover:bg-gray-50 hover:text-gray-900 transition-colors duration-200"
+            className="w-full flex items-center px-3 py-2 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <LogOut className="mr-3 h-5 w-5 text-gray-400" />
-            Sign out
+            <LogOut className="h-4 w-4 mr-3" />
+            Logout
           </button>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-64 flex flex-col h-full">
-        {/* Top bar */}
-        <div className="bg-white shadow-sm lg:shadow-none border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-4">
+      <div className="lg:pl-80 flex flex-col h-full flex-1">
+        {/* Enhanced Top bar */}
+        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-6">
           <button
             onClick={() => setSidebarOpen(true)}
-            className="text-gray-400 hover:text-gray-600 lg:hidden"
+            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 lg:hidden"
           >
-            <Menu className="h-6 w-6" />
+            <Menu className="h-5 w-5" />
           </button>
           
           <div className="flex items-center lg:hidden">
-            <Bus className="h-6 w-6 text-blue-600 mr-2" />
-            <span className="text-lg font-semibold text-gray-900">TMS</span>
+            <div className="w-8 h-8 bg-green-600 rounded-lg flex items-center justify-center mr-3">
+              <Bus className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-lg font-bold text-gray-900">TMS</span>
           </div>
 
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
-            <div className="text-sm text-gray-500">
-              Welcome back, <span className="font-medium text-gray-900">{student?.studentName}</span>
+            <div className="flex items-center space-x-4">
+              <div className="relative">
+                                 <input
+                   type="text"
+                   placeholder="Search transport..."
+                   className="w-96 pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                 />
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <kbd className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded">
+                    ⌘ F
+                  </kbd>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             {/* Notification Center */}
             {studentId && (
               <NotificationCenter 
                 userId={studentId} 
                 userType="student" 
-                className="mr-2"
+                className="mr-1"
               />
             )}
             
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium text-gray-900">{student?.studentName}</p>
-              <p className="text-xs text-gray-500">{student?.rollNumber}</p>
-            </div>
-            <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-              <span className="text-sm font-medium text-white">
-                {student?.studentName?.charAt(0).toUpperCase()}
-              </span>
+            <div className="relative">
+              <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center cursor-pointer hover:bg-green-700 transition-colors">
+                <span className="text-xs font-bold text-white">
+                  {student?.studentName?.charAt(0).toUpperCase() || 'S'}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="p-4">
-            {/* Notification Banner */}
-            {studentId && (
-              <NotificationBanner 
-                userId={studentId} 
-                className="mb-4"
-              />
-            )}
-            
-            <div className="px-0">
-              {children}
-            </div>
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="container-modern py-8">
+            {children}
           </div>
         </main>
       </div>

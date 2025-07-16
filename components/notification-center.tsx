@@ -346,39 +346,67 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Bell Icon */}
+      {/* Enhanced Bell Icon */}
       <button
         onClick={handleBellClick}
-        className="relative p-2 text-gray-600 hover:text-gray-900 transition-colors"
+        className="relative p-3 text-gray-600 hover:text-gray-900 hover:bg-gradient-to-r hover:from-gray-50 hover:to-blue-50 rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
       >
-        <Bell className="w-6 h-6" />
+        <motion.div
+          animate={unreadCount > 0 ? { rotate: [0, 10, -10, 0] } : {}}
+          transition={{ 
+            duration: 1, 
+            repeat: unreadCount > 0 ? Infinity : 0, 
+            repeatDelay: 3,
+            ease: "easeInOut"
+          }}
+        >
+          <Bell className="w-6 h-6" />
+        </motion.div>
+        
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadCount > 9 ? '9+' : unreadCount}
-          </span>
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-red-600 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center font-bold shadow-lg border-2 border-white"
+          >
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </motion.span>
         )}
       </button>
 
-      {/* Notification Panel */}
+      {/* Enhanced Notification Panel */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50"
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="absolute right-0 mt-3 w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
           >
-            {/* Header */}
-            <div className="p-4 border-b border-gray-200">
+            {/* Enhanced Header */}
+            <div className="bg-gradient-to-r from-blue-50 via-blue-50 to-purple-50 p-6 border-b border-gray-100">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Notifications
-                  {unreadCount > 0 && (
-                    <span className="ml-2 bg-red-100 text-red-800 text-xs px-2 py-1 rounded-full">
-                      {unreadCount} new
-                    </span>
-                  )}
-                </h3>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                    <Bell className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">
+                      Notifications
+                    </h3>
+                    {unreadCount > 0 && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="inline-flex items-center bg-gradient-to-r from-red-100 to-red-200 text-red-800 text-xs px-3 py-1 rounded-full font-semibold shadow-sm"
+                      >
+                        {unreadCount} new
+                      </motion.span>
+                    )}
+                  </div>
+                </div>
                 <div className="flex items-center space-x-2">
                   <button
                     onClick={() => setShowSettings(!showSettings)}

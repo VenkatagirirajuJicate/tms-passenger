@@ -53,39 +53,7 @@ export default function GrievancesPage() {
     description: ''
   });
 
-  // Add this temporary debug section after the state declarations
-  const [debugResult, setDebugResult] = useState<any>(null);
-  
-  const testAuth = async () => {
-    try {
-      const session = sessionManager.getSession();
-      const studentId = sessionManager.getCurrentStudentId();
-      
-      console.log('Session:', session);
-      console.log('Student ID:', studentId);
-      
-      setDebugResult({
-        hasSession: !!session,
-        hasEmail: !!session?.user?.email,
-        hasStudentId: !!studentId,
-        sessionUser: session?.user,
-        studentId: studentId
-      });
-      
-      if (!session?.user?.email || !studentId) {
-        toast.error('Authentication data missing');
-        return;
-      }
 
-      toast.success('Authentication data found!');
-      
-    } catch (error) {
-      console.error('Error:', error);
-      setDebugResult({
-        error: error instanceof Error ? error.message : 'Unknown error'
-      });
-    }
-  };
 
   useEffect(() => {
     fetchInitialData();
@@ -309,25 +277,7 @@ export default function GrievancesPage() {
         ))}
       </div>
 
-      {/* Debug Section */}
-      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-yellow-800 mb-2">Debug Authentication</h3>
-        <div className="flex items-center space-x-4 mb-4">
-          <button
-            onClick={testAuth}
-            className="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors"
-          >
-            Test Authentication
-          </button>
-          {debugResult && (
-            <div className="flex-1 bg-white rounded-lg p-3">
-              <pre className="text-sm text-gray-800 overflow-x-auto">
-                {JSON.stringify(debugResult, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-      </div>
+
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
