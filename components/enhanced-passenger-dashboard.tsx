@@ -43,6 +43,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { StudentDashboardData } from '@/types';
+import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
 
 interface EnhancedPassengerDashboardProps {
   data: StudentDashboardData;
@@ -83,11 +84,13 @@ const StatCard = ({ title, value, icon: Icon, change, delay = 0 }: {
   </motion.div>
 );
 
-const QuickActionCard = ({ title, description, icon: Icon, href, badge, delay = 0 }: {
+const QuickActionCard = ({ title, description, icon: Icon, href, action, onClick, badge, delay = 0 }: {
   title: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  href: string;
+  href?: string;
+  action?: string;
+  onClick?: () => void;
   badge?: number;
   delay?: number;
 }) => (
@@ -96,31 +99,46 @@ const QuickActionCard = ({ title, description, icon: Icon, href, badge, delay = 
     animate={{ opacity: 1, y: 0 }}
     transition={{ delay: delay * 0.1 }}
   >
-    <Link href={href} className="block group">
-      <div className="modern-card p-6 h-full group-hover:shadow-lg transition-all duration-200">
-        <div className="flex items-center justify-between mb-4">
-          <div className="p-3 bg-green-50 rounded-xl group-hover:bg-green-100 transition-colors">
-            <Icon className="h-6 w-6 text-green-600" />
-          </div>
-          {badge && badge > 0 && (
-            <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
-              {badge}
-            </div>
-          )}
-        </div>
-        <div className="space-y-2">
-          <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-            {title}
-          </h3>
-          <p className="text-sm text-gray-500">{description}</p>
-        </div>
-        <div className="flex items-center text-green-600 mt-4 group-hover:translate-x-1 transition-transform">
-          <span className="text-sm font-medium mr-2">View Details</span>
-          <ChevronRight className="h-4 w-4" />
-        </div>
-      </div>
-    </Link>
+    {href ? (
+      <Link href={href} className="block group">
+        <QuickActionCardContent title={title} description={description} icon={Icon} badge={badge} />
+      </Link>
+    ) : (
+      <button onClick={onClick} className="block group w-full text-left">
+        <QuickActionCardContent title={title} description={description} icon={Icon} badge={badge} />
+      </button>
+    )}
   </motion.div>
+);
+
+const QuickActionCardContent = ({ title, description, icon: Icon, badge }: {
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: number;
+}) => (
+  <div className="modern-card p-6 h-full group-hover:shadow-lg transition-all duration-200">
+    <div className="flex items-center justify-between mb-4">
+      <div className="p-3 bg-green-50 rounded-xl group-hover:bg-green-100 transition-colors">
+        <Icon className="h-6 w-6 text-green-600" />
+      </div>
+      {badge && badge > 0 && (
+        <div className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-semibold">
+          {badge}
+        </div>
+      )}
+    </div>
+    <div className="space-y-2">
+      <h3 className="font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
+        {title}
+      </h3>
+      <p className="text-sm text-gray-500">{description}</p>
+    </div>
+    <div className="flex items-center text-green-600 mt-4 group-hover:translate-x-1 transition-transform">
+      <span className="text-sm font-medium mr-2">View Details</span>
+      <ChevronRight className="h-4 w-4" />
+    </div>
+  </div>
 );
 
 const UpcomingBookingCard = ({ booking, delay = 0 }: {
@@ -220,6 +238,7 @@ export default function EnhancedPassengerDashboard({
   onRefresh 
 }: EnhancedPassengerDashboardProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -289,6 +308,12 @@ export default function EnhancedPassengerDashboard({
       description: 'View transport routes',
       icon: MapPin,
       href: '/dashboard/routes',
+    },
+    {
+      title: 'Track Bus',
+      description: 'Live GPS tracking',
+      icon: Navigation,
+      action: 'track-bus',
     },
     {
       title: 'Payments',
@@ -396,6 +421,8 @@ export default function EnhancedPassengerDashboard({
                   description={action.description}
                   icon={action.icon}
                   href={action.href}
+                  action={action.action}
+                  onClick={action.action === 'track-bus' ? () => setIsTrackingModalOpen(true) : undefined}
                   badge={action.badge}
                   delay={index}
                 />
@@ -525,6 +552,13 @@ export default function EnhancedPassengerDashboard({
           </motion.div>
         </div>
       </div>
+
+      {/* Live Bus Tracking Modal */}
+      <LiveBusTrackingModal 
+        isOpen={isTrackingModalOpen}
+        onClose={() => setIsTrackingModalOpen(false)}
+        routeId={transportStatus?.routeInfo?.id}
+      />
     </div>
   );
 } 

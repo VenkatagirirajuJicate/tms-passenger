@@ -20,6 +20,7 @@ import {
 import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
 import { Card, Button, Badge, Spinner, Alert, Avatar } from '@/components/modern-ui-components';
+import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
 import toast from 'react-hot-toast';
 
 interface RouteInfo {
@@ -44,6 +45,7 @@ export default function RoutesPage() {
   const [boardingStop, setBoardingStop] = useState<BoardingStop | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
 
   const fetchRouteData = async () => {
     try {
@@ -386,7 +388,12 @@ export default function RoutesPage() {
                      Book Trip
                    </Button>
                  </Link>
-                <Button fullWidth variant="secondary" icon={Navigation}>
+                <Button 
+                  fullWidth 
+                  variant="secondary" 
+                  icon={Navigation}
+                  onClick={() => setIsTrackingModalOpen(true)}
+                >
                   Track Bus
                 </Button>
                 <Button fullWidth variant="ghost" icon={AlertCircle}>
@@ -397,6 +404,13 @@ export default function RoutesPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Live Bus Tracking Modal */}
+      <LiveBusTrackingModal 
+        isOpen={isTrackingModalOpen}
+        onClose={() => setIsTrackingModalOpen(false)}
+        routeId={route?.id}
+      />
     </div>
   );
 } 
