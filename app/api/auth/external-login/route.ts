@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcryptjs';
+import { ExternalStudent, getFullStudentName, getPrimaryMobile, getPrimaryEmail } from '@/types/external-student';
 
 export async function POST(request: NextRequest) {
   try {
@@ -74,35 +75,9 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    const students = data.data || data.students || [];
+    const students: ExternalStudent[] = data.data || data.students || [];
     
-    // Find student by email or mobile
-    interface ExternalStudent {
-      student_email?: string;
-      college_email?: string;
-      student_mobile?: string;
-      father_mobile?: string;
-      mother_mobile?: string;
-      student_name?: string;
-      name?: string;
-      roll_number?: string;
-      student_id?: string;
-      id?: string;
-      department_name?: string;
-      institution_name?: string;
-      program_name?: string;
-      degree_name?: string;
-      father_name?: string;
-      mother_name?: string;
-      date_of_birth?: string;
-      gender?: string;
-      permanent_address_street?: string;
-      permanent_address_district?: string;
-      permanent_address_state?: string;
-      permanent_address_pin_code?: string;
-      is_profile_complete?: boolean;
-    }
-
+    // Find student by email or mobile with updated schema
     const foundStudent = students.find((student: ExternalStudent) => {
       const emailMatch = student.student_email?.toLowerCase() === email.toLowerCase() ||
                          student.college_email?.toLowerCase() === email.toLowerCase();
@@ -121,7 +96,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('✅ External Auth: Student verified:', foundStudent.student_name);
+    const fullStudentName = getFullStudentName(foundStudent);
+    console.log('✅ External Auth: Student verified:', fullStudentName);
 
     // Hash the new password
     const passwordHash = await bcrypt.hash(newPassword, 12);
@@ -151,14 +127,14 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Prepare student data for local storage
+    // Prepare student data for local storage with updated schema mapping
     const studentData = {
-      student_name: foundStudent.student_name || foundStudent.name,
-      roll_number: foundStudent.roll_number || foundStudent.student_id,
-      email: foundStudent.student_email || foundStudent.college_email || email,
-      mobile: foundStudent.student_mobile || foundStudent.father_mobile || foundStudent.mother_mobile || mobile,
+      student_name: fullStudentName, // Combine first_name and last_name
+      roll_number: foundStudent.roll_number,
+      email: getPrimaryEmail(foundStudent),
+      mobile: getPrimaryMobile(foundStudent),
       password_hash: passwordHash,
-      external_student_id: foundStudent.student_id || foundStudent.id,
+      external_student_id: foundStudent.id,
       external_roll_number: foundStudent.roll_number,
       external_data: foundStudent,
       auth_source: 'external_api',
@@ -169,11 +145,11 @@ export async function POST(request: NextRequest) {
       transport_status: transportStatus,
       allocated_route_id: allocatedRouteId,
       boarding_point: boardingPoint,
-      // Additional comprehensive fields from external API
-      department_name: foundStudent.department_name,
-      institution_name: foundStudent.institution_name,
-      program_name: foundStudent.program_name,
-      degree_name: foundStudent.degree_name,
+      // Additional comprehensive fields from external API with updated mapping
+      department_name: foundStudent.department?.department_name || 'Unknown Department',
+      institution_name: foundStudent.institution?.name || 'Unknown Institution',
+      program_name: foundStudent.program?.program_name || '',
+      degree_name: foundStudent.degree?.degree_name || '',
       father_name: foundStudent.father_name,
       mother_name: foundStudent.mother_name,
       parent_mobile: foundStudent.father_mobile || foundStudent.mother_mobile,
@@ -186,20 +162,39 @@ export async function POST(request: NextRequest) {
       address_state: foundStudent.permanent_address_state,
       address_pin_code: foundStudent.permanent_address_pin_code,
       is_profile_complete: foundStudent.is_profile_complete || false,
-      last_login: new Date().toISOString(),
-      created_at: existingStudent ? existingStudent.created_at : new Date().toISOString(),
-      updated_at: new Date().toISOString()
+      // Additional new fields from updated schema
+      first_name: foundStudent.first_name,
+      last_name: foundStudent.last_name,
+      admission_id: foundStudent.admission_id,
+      application_id: foundStudent.application_id,
+      semester_id: foundStudent.semester_id,
+      section_id: foundStudent.section_id,
+      academic_year_id: foundStudent.academic_year_id,
+      father_occupation: foundStudent.father_occupation,
+      mother_occupation: foundStudent.mother_occupation,
+      religion: foundStudent.religion,
+      community: foundStudent.community,
+      caste: foundStudent.caste,
+      annual_income: foundStudent.annual_income,
+      last_school: foundStudent.last_school,
+      board_of_study: foundStudent.board_of_study,
+      tenth_marks: foundStudent.tenth_marks,
+      twelfth_marks: foundStudent.twelfth_marks,
+      bus_required: foundStudent.bus_required,
+      bus_route: foundStudent.bus_route,
+      bus_pickup_location: foundStudent.bus_pickup_location,
+      student_photo_url: foundStudent.student_photo_url
     };
 
-    // Create or update student record
+    // Insert or update student data
     let student;
     if (existingStudent) {
-      // Update existing student (preserving admin-set transport data)
+      console.log('🔄 Updating existing student record...');
       const { data: updatedStudent, error: updateError } = await supabaseAdmin
         .from('students')
         .update(studentData)
-        .eq('id', existingStudent.id)
-        .select('*')
+        .eq('email', email)
+        .select()
         .single();
 
       if (updateError) {
@@ -210,25 +205,25 @@ export async function POST(request: NextRequest) {
         );
       }
       student = updatedStudent;
-      console.log('✅ Updated existing student with preserved transport enrollment');
     } else {
-      // Create new student (no transport enrollment yet)
-      const { data: newStudent, error: createError } = await supabaseAdmin
+      console.log('➕ Creating new student record...');
+      const { data: newStudent, error: insertError } = await supabaseAdmin
         .from('students')
         .insert(studentData)
-        .select('*')
+        .select()
         .single();
 
-      if (createError) {
-        console.error('Error creating student:', createError);
+      if (insertError) {
+        console.error('Error creating student:', insertError);
         return NextResponse.json(
           { error: 'Failed to create student record' },
           { status: 500 }
         );
       }
       student = newStudent;
-      console.log('✅ Created new student with default enrollment status');
     }
+
+    console.log('✅ Student record saved successfully');
 
     // Return success with student data
     return NextResponse.json({

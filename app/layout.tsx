@@ -9,10 +9,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "TMS Passenger - Transport Management System",
+  title: "MYJKKN TMS - JKKN College Transport Portal",
   description: "Student transport booking and management portal",
   keywords: ["transport", "student", "booking", "management", "bus"],
-  authors: [{ name: "TMS Team" }],
+  authors: [{ name: "JKKN College" }],
   icons: {
     icon: "/favicon.ico",
   },

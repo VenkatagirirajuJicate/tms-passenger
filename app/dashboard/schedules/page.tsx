@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
+import { ScheduleAccessControl } from '@/components/account-access-control';
 import { 
   formatDateForDatabase, 
   compareDateWithScheduleDate, 
@@ -301,6 +302,8 @@ export default function SchedulesPage() {
   const [student, setStudent] = useState<any>(null);
   const [showBookingConfirmation, setShowBookingConfirmation] = useState(false);
   const [pendingBooking, setPendingBooking] = useState<ScheduleData | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [nextDueAmount, setNextDueAmount] = useState<number | null>(null);
 
   // Calendar state - always start with current month
   const [calendarDate, setCalendarDate] = useState(() => {
@@ -626,6 +629,27 @@ export default function SchedulesPage() {
       });
 
       setStudent(currentStudent);
+      
+      // Fetch payment status
+      try {
+        const paymentStatusData = await studentHelpers.getPaymentStatus(currentStudent.student_id);
+        setPaymentStatus(paymentStatusData);
+        
+        // If account is inactive, fetch available fees for reactivation
+        if (!paymentStatusData.isActive) {
+          try {
+            const feesData = await studentHelpers.getAvailableFees(currentStudent.student_id);
+            const dueAmount = feesData?.available_options?.find((option: any) => 
+              option.is_available && option.is_recommended
+            )?.amount;
+            setNextDueAmount(dueAmount);
+          } catch (error) {
+            console.error('Error fetching available fees:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching payment status:', error);
+      }
       
       // Fetch student's route allocation
       console.log('🔍 INIT DEBUG: Fetching student allocation...');
@@ -1744,7 +1768,11 @@ export default function SchedulesPage() {
       </div>
 
       {/* Calendar */}
-      <div className="bg-white rounded-lg border p-6">
+      <ScheduleAccessControl
+        isActive={studentAllocation?.route ? (paymentStatus?.isActive ?? true) : true}
+        nextDueAmount={studentAllocation?.route ? (nextDueAmount ?? undefined) : undefined}
+      >
+        <div className="bg-white rounded-lg border p-6">
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
@@ -1916,6 +1944,7 @@ export default function SchedulesPage() {
           )}
         </div>
       </div>
+      </ScheduleAccessControl>
 
       {/* Boarding Pass Modal */}
       <BoardingPass

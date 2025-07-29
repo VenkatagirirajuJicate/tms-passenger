@@ -829,6 +829,13 @@ export const studentHelpers = {
       fare: number;
       departureTime: string;
       arrivalTime: string;
+      stops?: Array<{
+        id: string;
+        stopName: string;
+        stopTime: string;
+        sequenceOrder: number;
+        isMajorStop: boolean;
+      }>;
     } | null;
     boardingStop: {
       id: string;
@@ -867,7 +874,8 @@ export const studentHelpers = {
           endLocation: allocationData.route.endLocation,
           fare: allocationData.route.fare,
           departureTime: allocationData.route.departureTime,
-          arrivalTime: allocationData.route.arrivalTime
+          arrivalTime: allocationData.route.arrivalTime,
+          stops: allocationData.route.stops || []
         },
         boardingStop: allocationData.boardingStop ? {
           id: allocationData.boardingStop.id,
@@ -961,16 +969,30 @@ export const studentHelpers = {
         return null;
       }
 
+      // Get all route stops
+      const { data: routeStops, error: stopsError } = await supabase
+        .from('route_stops')
+        .select('*')
+        .eq('route_id', route.id)
+        .order('sequence_order', { ascending: true });
+
+      if (stopsError) {
+        console.error('Error fetching route stops:', stopsError);
+      }
+
+      // Format route stops for UI
+      const formattedStops = (routeStops || []).map(stop => ({
+        id: stop.id as string,
+        stopName: stop.stop_name as string,
+        stopTime: stop.stop_time as string,
+        sequenceOrder: stop.sequence_order as number,
+        isMajorStop: stop.is_major_stop as boolean
+      }));
+
       // Find boarding stop if specified
       let boardingStop = null;
       if (student.boarding_point) {
-        const { data: stop } = await supabase
-          .from('route_stops')
-          .select('*')
-          .eq('route_id', route.id)
-          .eq('stop_name', student.boarding_point)
-          .single();
-
+        const stop = routeStops?.find(s => s.stop_name === student.boarding_point);
         if (stop) {
           boardingStop = {
             id: stop.id as string,
@@ -999,7 +1021,8 @@ export const studentHelpers = {
           endLocation: route.end_location as string,
           fare: route.fare as number,
           departureTime: route.departure_time as string,
-          arrivalTime: route.arrival_time as string
+          arrivalTime: route.arrival_time as string,
+          stops: formattedStops
         },
         boardingStop: boardingStop,
         isActive: true
@@ -1279,6 +1302,248 @@ export const studentHelpers = {
         success: false,
         message: `Failed to create booking: ${errorMessage}`
       };
+    }
+  },
+
+  // Check student payment status for account activation
+  async getPaymentStatus(studentId: string) {
+    try {
+      console.log('Checking payment status for student:', studentId);
+
+      // Get current academic info
+      const now = new Date();
+      const month = now.getMonth() + 1;
+      const year = now.getFullYear();
+      
+      let currentAcademic;
+      if (month >= 6) {
+        // June onwards - new academic year starts  
+        currentAcademic = {
+          academicYear: `${year}-${String(year + 1).slice(-2)}`,
+          currentTerm: month >= 6 && month <= 9 ? '1' : month >= 10 || month <= 1 ? '2' : '3'
+        };
+      } else {
+        // Jan-May - still in previous academic year
+        currentAcademic = {
+          academicYear: `${year - 1}-${String(year).slice(-2)}`,
+          currentTerm: month >= 2 && month <= 5 ? '3' : '2'
+        };
+      }
+
+      console.log('🔍 PAYMENT DEBUG: Current academic info:', currentAcademic);
+
+      // ✅ FIRST: Check if fee structure exists for this student's route
+      const { data: studentInfo, error: studentError } = await supabase
+        .from('students')
+        .select('allocated_route_id, boarding_point, boarding_stop')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError || !studentInfo) {
+        console.log('🚨 PAYMENT DEBUG: Student not found, defaulting to active');
+        return {
+          isActive: true,
+          lastPaidTerm: null,
+          message: 'Student not found - allowing access'
+        };
+      }
+
+      const routeId = studentInfo.allocated_route_id;
+      const boardingStop = studentInfo.boarding_point || studentInfo.boarding_stop;
+
+      // If student doesn't have route allocation, consider them active (no payment required)
+      if (!routeId || !boardingStop) {
+        console.log('🚨 PAYMENT DEBUG: No route allocation, considering active');
+        return {
+          isActive: true,
+          lastPaidTerm: null,
+          message: 'No route allocation - no payment required'
+        };
+      }
+
+      // Check if fee structure exists for this route/boarding point
+      const { data: feeStructure, error: feeError } = await supabase
+        .from('semester_fees')
+        .select('id')
+        .eq('allocated_route_id', routeId)
+        .eq('stop_name', boardingStop)
+        .eq('academic_year', currentAcademic.academicYear)
+        .eq('is_active', true)
+        .limit(1);
+
+      if (feeError) {
+        console.log('🚨 PAYMENT DEBUG: Error checking fee structure, defaulting to active');
+        return {
+          isActive: true,
+          lastPaidTerm: null,
+          message: 'Fee structure check failed - allowing access'
+        };
+      }
+
+      // If no fee structure exists, consider account active (graceful handling)
+      if (!feeStructure || feeStructure.length === 0) {
+        console.log('🚨 PAYMENT DEBUG: No fee structure found for route/boarding point, considering active');
+        return {
+          isActive: true,
+          lastPaidTerm: null,
+          message: 'No fee structure configured - allowing access until setup'
+        };
+      }
+
+      console.log('✅ PAYMENT DEBUG: Fee structure exists, proceeding with payment checks');
+
+      // Get student's payment history (both confirmed and pending)
+      const { data: payments, error: paymentsError } = await supabase
+        .from('semester_payments')
+        .select(`
+          id,
+          semester,
+          payment_type,
+          covers_terms,
+          payment_status,
+          amount_paid,
+          valid_from,
+          valid_until,
+          academic_year,
+          payment_date,
+          created_at
+        `)
+        .eq('student_id', studentId)
+        .in('payment_status', ['confirmed', 'pending'])
+        .order('created_at', { ascending: false });
+
+      if (paymentsError) {
+        console.error('Error fetching payment history:', paymentsError);
+        return {
+          isActive: false,
+          lastPaidTerm: null,
+          error: 'Failed to fetch payment history'
+        };
+      }
+
+      console.log('🔍 PAYMENT DEBUG: Payment history:', payments);
+      console.log('🔍 PAYMENT DEBUG: Payment count:', payments?.length || 0);
+
+      if (!payments || payments.length === 0) {
+        // No payments found - check if we're in current term period
+        const currentTerm = currentAcademic.currentTerm;
+        const currentMonth = now.getMonth() + 1;
+        
+        // Determine if current term is active based on current month
+        let isCurrentTermActive = false;
+        if (currentTerm === '1' && currentMonth >= 6 && currentMonth <= 9) {
+          isCurrentTermActive = true; // June-September: Term 1 active
+        } else if (currentTerm === '2' && (currentMonth >= 10 || currentMonth <= 1)) {
+          isCurrentTermActive = true; // October-January: Term 2 active
+        } else if (currentTerm === '3' && currentMonth >= 2 && currentMonth <= 5) {
+          isCurrentTermActive = true; // February-May: Term 3 active
+        }
+        
+        if (isCurrentTermActive) {
+          // Allow access during active term even without payment history
+          console.log('🚨 PAYMENT DEBUG: No payment history but current term is active, allowing access');
+          return {
+            isActive: true,
+            lastPaidTerm: null,
+            message: `No payment required during active Term ${currentTerm} period`,
+            requiresPaymentSoon: true,
+            currentTerm: currentTerm
+          };
+        } else {
+          // Term is over, require payment
+          return {
+            isActive: false,
+            lastPaidTerm: null,
+            message: `Payment required for Term ${currentTerm}`
+          };
+        }
+      }
+
+      // Check for valid payments (not expired and either confirmed or pending)
+      const validPayments = payments.filter(payment => {
+        if (!payment.valid_until) return false;
+        const validUntil = new Date(payment.valid_until);
+        const isNotExpired = validUntil >= now;
+        const isValidStatus = ['confirmed', 'pending'].includes(payment.payment_status);
+        return isNotExpired && isValidStatus;
+      });
+
+      console.log('Valid payments (confirmed + pending):', validPayments);
+
+      // Also check for current academic year payments specifically
+      const currentYearPayments = payments.filter(payment => {
+        return payment.academic_year === currentAcademic.academicYear &&
+               ['confirmed', 'pending'].includes(payment.payment_status);
+      });
+
+      console.log('Current academic year payments:', currentYearPayments);
+
+      // If we have valid payments OR current year payments, account should be active
+      const hasValidPayments = validPayments.length > 0 || currentYearPayments.length > 0;
+
+      if (!hasValidPayments) {
+        // No valid payments - account inactive
+        const lastPayment = payments[0]; // Most recent payment
+        return {
+          isActive: false,
+          lastPaidTerm: lastPayment ? {
+            termName: lastPayment.payment_type === 'full_year' 
+              ? 'Full Academic Year' 
+              : `Term ${lastPayment.covers_terms?.join(', ') || lastPayment.semester}`,
+            academicYear: lastPayment.academic_year,
+            semester: lastPayment.semester,
+            paidDate: lastPayment.payment_date || lastPayment.created_at,
+            validUntil: lastPayment.valid_until,
+            amount: lastPayment.amount_paid
+          } : null,
+          message: lastPayment ? 'Payment expired' : 'No payment history found'
+        };
+      }
+
+      // Account is active - get the most relevant active payment (prefer current year)
+      const activePayment = currentYearPayments.length > 0 ? currentYearPayments[0] : validPayments[0];
+      
+      return {
+        isActive: true,
+        lastPaidTerm: {
+          termName: activePayment.payment_type === 'full_year' 
+            ? 'Full Academic Year' 
+            : `Term ${activePayment.covers_terms?.join(', ') || activePayment.semester}`,
+          academicYear: activePayment.academic_year,
+          semester: activePayment.semester,
+          paidDate: activePayment.payment_date || activePayment.created_at,
+          validUntil: activePayment.valid_until,
+          amount: activePayment.amount_paid
+        },
+        currentAcademic,
+        message: 'Account active'
+      };
+
+    } catch (error) {
+      console.error('Error checking payment status:', error);
+      return {
+        isActive: false,
+        lastPaidTerm: null,
+        error: 'Failed to check payment status'
+      };
+    }
+  },
+
+  // Get available fees for account reactivation
+  async getAvailableFees(studentId: string) {
+    try {
+      const response = await fetch(`/api/semester-payments-v2?studentId=${studentId}&type=available`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 404) {
+          throw new Error(`Fee structure not configured: ${errorData.error || 'Route or boarding point fee structure missing'}`);
+        }
+        throw new Error(`Failed to fetch available fees: ${errorData.error || response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching available fees:', error);
+      throw error;
     }
   },
 

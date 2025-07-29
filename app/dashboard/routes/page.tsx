@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { 
@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
+import { RouteAccessControl } from '@/components/account-access-control';
 import { Card, Button, Badge, Spinner, Alert, Avatar } from '@/components/modern-ui-components';
 import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
 import toast from 'react-hot-toast';
@@ -32,6 +33,15 @@ interface RouteInfo {
   fare: number;
   departureTime: string;
   arrivalTime: string;
+  stops?: RouteStop[];
+}
+
+interface RouteStop {
+  id: string;
+  stopName: string;
+  stopTime: string;
+  sequenceOrder: number;
+  isMajorStop: boolean;
 }
 
 interface BoardingStop {
@@ -46,6 +56,8 @@ export default function RoutesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [nextDueAmount, setNextDueAmount] = useState<number | null>(null);
 
   const fetchRouteData = async () => {
     try {
@@ -54,6 +66,28 @@ export default function RoutesPage() {
       
       if (!currentStudent?.student_id) {
         throw new Error('No student session found');
+      }
+
+      // Only fetch payment status if student has route allocation
+      // Routes page means they already have allocation, so always check payment
+      try {
+        const paymentStatusData = await studentHelpers.getPaymentStatus(currentStudent.student_id);
+        setPaymentStatus(paymentStatusData);
+        
+        // If account is inactive, fetch available fees for reactivation
+        if (!paymentStatusData.isActive) {
+          try {
+            const feesData = await studentHelpers.getAvailableFees(currentStudent.student_id);
+            const dueAmount = feesData?.available_options?.find((option: any) => 
+              option.is_available && option.is_recommended
+            )?.amount;
+            setNextDueAmount(dueAmount);
+          } catch (error) {
+            console.error('Error fetching available fees:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching payment status:', error);
       }
 
       const routeData = await studentHelpers.getStudentRouteAllocationFormatted(currentStudent.student_id);
@@ -145,12 +179,16 @@ export default function RoutesPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+      <RouteAccessControl
+        isActive={paymentStatus?.isActive ?? true}
+        nextDueAmount={nextDueAmount ?? undefined}
       >
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between"
+        >
         <div>
           <h1 className="text-heading-1 mb-2">My Transport Route</h1>
           <p className="text-body">Your allocated transport route and boarding information</p>
@@ -247,15 +285,15 @@ export default function RoutesPage() {
               </div>
 
               <div className="space-y-6">
-                {/* Route Path */}
-                <div className="flex items-center space-x-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-4 h-4 bg-green-600 rounded-full"></div>
-                    <div className="w-0.5 h-16 bg-gray-300"></div>
-                    <div className="w-4 h-4 bg-red-600 rounded-full"></div>
-                  </div>
-                  <div className="flex-1 space-y-4">
-                    <div className="p-4 bg-green-50 rounded-xl border border-green-200">
+                {/* Route Path with All Boarding Points - Aligned Layout */}
+                <div className="space-y-4">
+                  {/* Starting Point */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-4 h-4 bg-green-600 rounded-full shadow-sm"></div>
+                      <div className="w-0.5 h-4 bg-gray-300"></div>
+                    </div>
+                    <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-semibold text-green-900">{route.startLocation}</p>
@@ -264,7 +302,69 @@ export default function RoutesPage() {
                         <Badge variant="success">{route.departureTime}</Badge>
                       </div>
                     </div>
-                    <div className="p-4 bg-red-50 rounded-xl border border-red-200">
+                  </div>
+
+                  {/* All Intermediate Boarding Points */}
+                  {route.stops && route.stops
+                    .filter(stop => stop.stopName !== route.startLocation && stop.stopName !== route.endLocation)
+                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
+                    .map((stop, index, filteredStops) => (
+                      <div key={stop.id} className="flex items-center space-x-4">
+                        <div className="flex flex-col items-center">
+                          <div className={`w-3 h-3 rounded-full shadow-sm border-2 border-white ${
+                            stop.isMajorStop ? 'bg-blue-600' : 'bg-gray-400'
+                          }`}></div>
+                          {index < filteredStops.length - 1 && (
+                            <div className="w-0.5 h-4 bg-gray-300"></div>
+                          )}
+                        </div>
+                        <div className={`flex-1 p-4 rounded-xl border ${
+                          stop.isMajorStop 
+                            ? 'bg-blue-50 border-blue-200' 
+                            : 'bg-gray-50 border-gray-200'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <div className="flex items-center space-x-2">
+                                <p className={`font-semibold ${
+                                  stop.isMajorStop ? 'text-blue-900' : 'text-gray-900'
+                                }`}>
+                                  {stop.stopName}
+                                </p>
+                                {stop.isMajorStop && (
+                                  <Badge variant="info" size="sm">Major Stop</Badge>
+                                )}
+                              </div>
+                              <p className={`text-sm ${
+                                stop.isMajorStop ? 'text-blue-700' : 'text-gray-700'
+                              }`}>
+                                Boarding Point
+                              </p>
+                            </div>
+                            <Badge variant={stop.isMajorStop ? "info" : "default"}>
+                              {stop.stopTime}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                  {/* Final connector line before destination */}
+                  {route.stops && route.stops.filter(stop => stop.stopName !== route.startLocation && stop.stopName !== route.endLocation).length > 0 && (
+                    <div className="flex items-center space-x-4">
+                      <div className="flex flex-col items-center">
+                        <div className="w-0.5 h-4 bg-gray-300"></div>
+                      </div>
+                      <div className="flex-1"></div>
+                    </div>
+                  )}
+
+                  {/* Destination */}
+                  <div className="flex items-center space-x-4">
+                    <div className="flex flex-col items-center">
+                      <div className="w-4 h-4 bg-red-600 rounded-full shadow-sm"></div>
+                    </div>
+                    <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="font-semibold text-red-900">{route.endLocation}</p>
@@ -404,6 +504,7 @@ export default function RoutesPage() {
           </motion.div>
         </div>
       </div>
+      </RouteAccessControl>
 
       {/* Live Bus Tracking Modal */}
       <LiveBusTrackingModal 

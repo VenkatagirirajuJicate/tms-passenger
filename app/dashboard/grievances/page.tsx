@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
+import { GrievanceAccessControl } from '@/components/account-access-control';
 import { Grievance, Route, Student } from '@/types';
 import { formatDate, getStatusColor, getStatusText, capitalizeFirst, getErrorMessage } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -29,6 +30,8 @@ export default function GrievancesPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [showGrievanceModal, setShowGrievanceModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [nextDueAmount, setNextDueAmount] = useState<number | null>(null);
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -87,6 +90,27 @@ export default function GrievancesPage() {
       } as Student;
       
       setStudent(studentData);
+
+      // Fetch payment status
+      try {
+        const paymentStatusData = await studentHelpers.getPaymentStatus(currentStudent.student_id);
+        setPaymentStatus(paymentStatusData);
+        
+        // If account is inactive, fetch available fees for reactivation
+        if (!paymentStatusData.isActive) {
+          try {
+            const feesData = await studentHelpers.getAvailableFees(currentStudent.student_id);
+            const dueAmount = feesData?.available_options?.find((option: any) => 
+              option.is_available && option.is_recommended
+            )?.amount;
+            setNextDueAmount(dueAmount);
+          } catch (error) {
+            console.error('Error fetching available fees:', error);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching payment status:', error);
+      }
 
       await Promise.all([
         fetchGrievances(currentStudent.student_id),
@@ -240,20 +264,24 @@ export default function GrievancesPage() {
 
   return (
     <div className="p-6 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Grievances & Feedback</h1>
-          <p className="text-gray-600">Submit complaints, suggestions, and track their resolution</p>
+      <GrievanceAccessControl
+        isActive={paymentStatus?.isActive ?? true}
+        nextDueAmount={nextDueAmount ?? undefined}
+      >
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Grievances & Feedback</h1>
+            <p className="text-gray-600">Submit complaints, suggestions, and track their resolution</p>
+          </div>
+          <button
+            onClick={() => setShowGrievanceModal(true)}
+            className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Submit Grievance</span>
+          </button>
         </div>
-        <button
-          onClick={() => setShowGrievanceModal(true)}
-          className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Submit Grievance</span>
-        </button>
-      </div>
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -675,6 +703,7 @@ export default function GrievancesPage() {
           </div>
         </div>
       )}
+      </GrievanceAccessControl>
 
       {/* Group Chat Modal */}
       {showGroupChat && selectedGrievanceForChat && (

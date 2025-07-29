@@ -15,12 +15,16 @@ import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
 import EnrollmentDashboard from '@/components/enrollment-dashboard';
 import EnhancedPassengerDashboard from '@/components/enhanced-passenger-dashboard';
+import PaymentStatusBadge from '@/components/payment-status-badge';
+import { ServiceStatusBanner, AvailableServicesInfo } from '@/components/account-access-control';
 import { StudentDashboardData } from '@/types';
 import { Button, Card, Alert, Spinner } from '@/components/modern-ui-components';
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<any>(null);
+  const [availableFees, setAvailableFees] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,8 +38,33 @@ export default function DashboardPage() {
         throw new Error('No student session found');
       }
 
-      const data = await studentHelpers.getDashboardData(currentStudent.student_id);
+      // Fetch dashboard data and payment status in parallel
+      const [data, paymentStatusData] = await Promise.all([
+        studentHelpers.getDashboardData(currentStudent.student_id),
+        studentHelpers.getPaymentStatus(currentStudent.student_id)
+      ]);
+
       setDashboardData(data);
+      setPaymentStatus(paymentStatusData);
+
+      // Check if student has route allocation before fetching available fees
+      const hasRouteFromData = data.transportStatus?.hasActiveRoute || 
+                              (data.profile as any)?.allocated_route_id ||
+                              (data.profile as any)?.transportProfile?.transportStatus === 'active';
+
+      // Only fetch available fees for students with route allocation AND inactive payment
+      if (hasRouteFromData && !paymentStatusData.isActive) {
+        try {
+          const feesData = await studentHelpers.getAvailableFees(currentStudent.student_id);
+          setAvailableFees(feesData);
+        } catch (error) {
+          console.error('🔍 Available fees not configured for this route/boarding point:', error);
+          // Don't show error to user - fee structure may not be set up yet
+          // This is normal for newly enrolled students
+          setAvailableFees(null);
+        }
+      }
+
     } catch (error: any) {
       console.error('Dashboard data fetch error:', error);
       setError(error.message || 'Failed to load dashboard data');
@@ -116,11 +145,19 @@ export default function DashboardPage() {
                            (profile as any)?.allocated_route_id ||
                            (profile as any)?.transportProfile?.transportStatus === 'active';
 
+  // Get next due amount for inactive accounts
+  const nextDueAmount = availableFees?.available_options?.find((option: any) => 
+    option.is_available && option.is_recommended
+  )?.amount;
+
   // Show enrollment dashboard if no route allocation
   if (!hasRouteAllocation) {
     return (
       <div className="min-h-screen bg-gray-50">
         <div className="container-modern py-8 space-y-8">
+          {/* Payment Status Components REMOVED for first-time login users */}
+          {/* Students without route allocation don't need to see payment restrictions */}
+
           {/* Modern Welcome Header for Transport Enrollment */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -182,10 +219,43 @@ export default function DashboardPage() {
     );
   }
 
+  // Log the route allocation status for debugging
+  console.log('🔍 Dashboard Payment Logic:');
+  console.log('  - hasRouteAllocation:', hasRouteAllocation);
+  console.log('  - paymentStatus?.isActive:', paymentStatus?.isActive);
+  console.log('  - Should show payment restrictions:', hasRouteAllocation);
+
   // Show enhanced main transport dashboard
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="container-modern py-8">
+      <div className="container-modern py-8 space-y-8">
+        {/* Payment Status Components - ONLY for students with route allocation */}
+        {hasRouteAllocation && paymentStatus && (
+          <>
+            {/* Payment Status Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+            >
+              <PaymentStatusBadge
+                isActive={paymentStatus.isActive}
+                lastPaidTerm={paymentStatus.lastPaidTerm}
+                nextDueAmount={nextDueAmount}
+              />
+            </motion.div>
+
+            {/* Service Status Banner for Inactive Accounts */}
+            <ServiceStatusBanner 
+              isActive={paymentStatus.isActive}
+              nextDueAmount={nextDueAmount}
+            />
+
+            {/* Available Services Info for Inactive Accounts */}
+            <AvailableServicesInfo isActive={paymentStatus.isActive} />
+          </>
+        )}
+
+        {/* Enhanced Passenger Dashboard */}
         <EnhancedPassengerDashboard 
           data={dashboardData}
           loading={isLoading}

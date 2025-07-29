@@ -316,8 +316,8 @@ export default function EnhancedPassengerDashboard({
       action: 'track-bus',
     },
     {
-      title: 'Payments',
-      description: 'Manage transactions',
+      title: '3-Term Payments',
+      description: 'Flexible payment options',
       icon: CreditCard,
       href: '/dashboard/payments',
     },
