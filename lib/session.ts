@@ -17,14 +17,17 @@ export interface StudentSession {
 
 export const sessionManager = {
   // Store session in localStorage
-  setSession(sessionData: StudentSession) {
-    localStorage.setItem('student_session', JSON.stringify(sessionData));
+  setSession(sessionData: StudentSession | DriverSession) {
+    const key = 'driver_id' in sessionData.user.user_metadata ? 'driver_session' : 'student_session';
+    localStorage.setItem(key, JSON.stringify(sessionData));
   },
 
   // Get session from localStorage
-  getSession(): StudentSession | null {
+  getSession(): StudentSession | DriverSession | null {
     try {
-      const storedSession = localStorage.getItem('student_session');
+      const storedStudent = localStorage.getItem('student_session');
+      const storedDriver = localStorage.getItem('driver_session');
+      const storedSession = storedDriver || storedStudent;
       if (!storedSession) return null;
 
       const session = JSON.parse(storedSession);
@@ -46,12 +49,13 @@ export const sessionManager = {
   // Clear session from localStorage
   clearSession() {
     localStorage.removeItem('student_session');
+    localStorage.removeItem('driver_session');
   },
 
   // Check if user is authenticated
   isAuthenticated(): boolean {
     const session = this.getSession();
-    return !!session?.user?.user_metadata?.student_id;
+    return !!(session?.user?.user_metadata?.student_id || session?.user?.user_metadata?.driver_id);
   },
 
   // Get current student ID
@@ -60,9 +64,37 @@ export const sessionManager = {
     return session?.user?.user_metadata?.student_id || null;
   },
 
+  // Get current driver ID
+  getCurrentDriverId(): string | null {
+    const session = this.getSession();
+    return session?.user?.user_metadata?.driver_id || null;
+  },
+
   // Get current student info
   getCurrentStudent() {
     const session = this.getSession();
     return session?.user?.user_metadata || null;
+  },
+
+  // Get current driver info
+  getCurrentDriver() {
+    const session = this.getSession();
+    return session?.user?.user_metadata || null;
   }
 }; 
+
+export interface DriverSession {
+  user: {
+    id: string;
+    email: string;
+    user_metadata: {
+      driver_id: string;
+      driver_name: string;
+    };
+  };
+  session: {
+    access_token: string;
+    expires_at: number;
+    refresh_token: string;
+  };
+}

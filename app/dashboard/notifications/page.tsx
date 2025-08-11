@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bell, 
@@ -157,7 +157,7 @@ const NotificationsPage = () => {
     }
   }, [currentPage, selectedCategory, selectedType, showUnreadOnly, studentId]);
 
-  const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async () => {
     if (!studentId) return;
     
     setLoading(true);
@@ -187,9 +187,9 @@ const NotificationsPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId, currentPage, pageSize, selectedCategory, selectedType, showUnreadOnly]);
 
-  const fetchSettings = async () => {
+  const fetchSettings = useCallback(async () => {
     if (!studentId) return;
     
     try {
@@ -203,7 +203,7 @@ const NotificationsPage = () => {
     } catch (error) {
       console.error('Error fetching settings:', error);
     }
-  };
+  }, [studentId]);
 
   const markAsRead = async (notificationId: string) => {
     if (!studentId) return;

@@ -583,6 +583,10 @@ export const studentHelpers = {
         routeName: allocation.route.route_name as string,
         startLocation: allocation.route.start_location as string,
         endLocation: allocation.route.end_location as string,
+        startLatitude: allocation.route.start_latitude as number,
+        startLongitude: allocation.route.start_longitude as number,
+        endLatitude: allocation.route.end_latitude as number,
+        endLongitude: allocation.route.end_longitude as number,
         distance: allocation.route.distance as number,
         duration: allocation.route.duration as string,
         departureTime: allocation.route.departure_time as string,
@@ -591,6 +595,8 @@ export const studentHelpers = {
         totalCapacity: allocation.route.total_capacity as number,
         currentPassengers: allocation.route.current_passengers as number || 0,
         status: allocation.route.status as string,
+        driverId: allocation.route.driver_id as string,
+        vehicleId: allocation.route.vehicle_id as string,
         createdAt: new Date(allocation.route.created_at as string),
         updatedAt: new Date(allocation.route.updated_at as string),
         stops: routeStops?.map(stop => ({
@@ -842,6 +848,14 @@ export const studentHelpers = {
       stopName: string;
       stopTime: string;
     } | null;
+    driver?: {
+      id: string;
+      name: string;
+      experience: number;
+      rating: number;
+      totalTrips: number;
+      phone: string;
+    } | null;
     allocation: {
       id: string | null;
       allocatedAt: Date | null;
@@ -864,6 +878,32 @@ export const studentHelpers = {
         };
       }
 
+      // Fetch driver information if route has a driver assigned
+      let driverInfo = null;
+      if (allocationData.route.driverId) {
+        try {
+          const { data: driverData, error: driverError } = await supabase
+            .from('drivers')
+            .select('id, name, experience_years, rating, total_trips, phone')
+            .eq('id', allocationData.route.driverId)
+            .eq('status', 'active')
+            .single();
+
+          if (!driverError && driverData) {
+            driverInfo = {
+              id: driverData.id as string,
+              name: driverData.name as string,
+              experience: driverData.experience_years as number || 0,
+              rating: driverData.rating as number || 0,
+              totalTrips: driverData.total_trips as number || 0,
+              phone: driverData.phone as string
+            };
+          }
+        } catch (driverFetchError) {
+          console.error('Error fetching driver information:', driverFetchError);
+        }
+      }
+
       // Format the response to match component expectations
       return {
         route: {
@@ -882,6 +922,7 @@ export const studentHelpers = {
           stopName: allocationData.boardingStop.stopName,
           stopTime: allocationData.boardingStop.stopTime
         } : null,
+        driver: driverInfo,
         allocation: {
           id: allocationData.id || null,
           allocatedAt: null, // This field isn't available in the current structure
@@ -1899,6 +1940,49 @@ export const studentHelpers = {
   async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
+  }
+};
+
+// Helper functions for driver operations
+export const driverHelpers = {
+  // Regular driver login using API route
+  async signIn(email: string, password: string) {
+    try {
+      const response = await fetch('/api/auth/driver-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      return { user: data.user, session: data.session, driver: data.driver };
+    } catch (error: any) {
+      throw new Error(error.message || 'Login failed');
+    }
+  },
+
+  // Get routes assigned to driver
+  async getAssignedRoutes(driverId: string) {
+    const res = await fetch(`/api/driver/routes?driverId=${encodeURIComponent(driverId)}`);
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    return json.routes || [];
+  },
+
+  // Get bookings for a route and date, useful for stop-wise view
+  async getRouteBookings(params: { routeId?: string; routeNumber?: string; date?: string }) {
+    const searchParams = new URLSearchParams();
+    if (params.routeId) searchParams.set('routeId', params.routeId);
+    if (params.routeNumber) searchParams.set('routeNumber', params.routeNumber);
+    if (params.date) searchParams.set('date', params.date);
+    const res = await fetch(`/api/driver/bookings?${searchParams.toString()}`);
+    if (!res.ok) throw new Error(await res.text());
+    const json = await res.json();
+    return json.bookings || [];
   }
 };
 

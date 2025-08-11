@@ -12,8 +12,8 @@ export default function Home() {
     const checkAuth = () => {
       try {
         if (sessionManager.isAuthenticated()) {
-          // User is authenticated, redirect to dashboard
-          router.replace('/dashboard');
+          const isDriver = !!sessionManager.getCurrentDriverId();
+          router.replace(isDriver ? '/driver' : '/dashboard');
         } else {
           // User is not authenticated, redirect to login
           router.replace('/login');

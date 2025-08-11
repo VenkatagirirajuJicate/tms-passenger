@@ -49,6 +49,7 @@ export default function DashboardLayout({
     { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, current: pathname === '/dashboard/payments' },
     { name: 'Grievances', href: '/dashboard/grievances', icon: MessageSquare, current: pathname === '/dashboard/grievances' },
     { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, current: pathname === '/dashboard/notifications' },
+    { name: 'Location', href: '/dashboard/location', icon: MapPin, current: pathname === '/dashboard/location' },
     { name: 'Profile', href: '/dashboard/profile', icon: User, current: pathname === '/dashboard/profile' },
   ], [pathname]);
 

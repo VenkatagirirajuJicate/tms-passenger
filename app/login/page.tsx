@@ -4,16 +4,18 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Phone, Lock, Mail, GraduationCap, Calendar } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { studentHelpers } from '@/lib/supabase';
+import { studentHelpers, driverHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
 import { isValidEmail, validatePassword, getErrorMessage } from '@/lib/utils';
 
 type LoginMode = 'regular' | 'first-time';
+type UserRole = 'student' | 'driver';
 type AuthMethod = 'mobile' | 'dob';
 
 export default function LoginPage() {
   const router = useRouter();
   const [mode, setMode] = useState<LoginMode>('regular');
+  const [role, setRole] = useState<UserRole>('student');
   const [authMethod, setAuthMethod] = useState<AuthMethod>('mobile');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -37,6 +39,13 @@ export default function LoginPage() {
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
+  // If switching to driver role, force regular login mode
+  useEffect(() => {
+    if (role === 'driver' && mode !== 'regular') {
+      setMode('regular');
+    }
+  }, [role, mode]);
 
   // Validation functions
   const validateRegularLogin = (): boolean => {
@@ -117,24 +126,35 @@ export default function LoginPage() {
 
     setIsLoading(true);
     try {
-      const { user, session, student } = await studentHelpers.signIn(email, password);
-      
-      // Store session using session manager with the correct structure
-      sessionManager.setSession({
-        user: user,
-        session: {
-          access_token: session.access_token,
-          expires_at: session.expires_at,
-          refresh_token: session.refresh_token
-        }
-      });
-      
-      toast.success(`Welcome back, ${student.student_name}!`);
-      router.push('/dashboard');
+      if (role === 'student') {
+        const { user, session, student } = await studentHelpers.signIn(email, password);
+        sessionManager.setSession({
+          user: user,
+          session: {
+            access_token: session.access_token,
+            expires_at: session.expires_at,
+            refresh_token: session.refresh_token
+          }
+        });
+        toast.success(`Welcome back, ${student.student_name}!`);
+        router.push('/dashboard');
+      } else {
+        const { user, session, driver } = await driverHelpers.signIn(email, password);
+        sessionManager.setSession({
+          user: user,
+          session: {
+            access_token: session.access_token,
+            expires_at: session.expires_at,
+            refresh_token: session.refresh_token
+          }
+        } as any);
+        toast.success(`Welcome, ${driver.name}!`);
+        router.push('/driver');
+      }
     } catch (error: any) {
       const errorMessage = getErrorMessage(error);
       
-      if (errorMessage.includes('first time login')) {
+      if (role === 'student' && errorMessage.includes('first time login')) {
         toast.error('Please complete your first-time setup using external authentication');
         setMode('first-time');
         setFirstTimeEmail(email);
@@ -239,55 +259,81 @@ export default function LoginPage() {
             <GraduationCap className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Student Portal
+            {role === 'student' ? 'Student Portal' : 'Driver Portal'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
             MYJKKN TMS - JKKN College Transport
           </p>
         </div>
 
-        {/* Mode Toggle */}
-        {isMounted ? (
-          <div className="flex rounded-lg bg-gray-100 p-1">
+        {/* Mode Toggle (students only) */}
+        {role === 'student' && (
+          isMounted ? (
+            <div className="flex rounded-lg bg-gray-100 p-1">
+              <button
+                type="button"
+                onClick={() => switchMode('regular')}
+                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                  mode === 'regular'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                Login
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('first-time')}
+                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
+                  mode === 'first-time'
+                    ? 'bg-white text-blue-600 shadow-sm'
+                    : 'text-gray-600 hover:text-gray-800'
+                }`}
+              >
+                First Time Setup
+              </button>
+            </div>
+          ) : (
+            <div className="flex rounded-lg bg-gray-100 p-1 animate-pulse">
+              <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
+              <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
+            </div>
+          )
+        )}
+
+        {/* Role Toggle */}
+        {isMounted && (
+          <div className="bg-white p-2 rounded-lg shadow flex items-center justify-center space-x-2">
             <button
               type="button"
-              onClick={() => switchMode('regular')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                mode === 'regular'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+              onClick={() => setRole('student')}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                role === 'student' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'
               }`}
             >
-              Login
+              Student
             </button>
             <button
               type="button"
-              onClick={() => switchMode('first-time')}
-              className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                mode === 'first-time'
-                  ? 'bg-white text-blue-600 shadow-sm'
-                  : 'text-gray-600 hover:text-gray-800'
+              onClick={() => setRole('driver')}
+              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
+                role === 'driver' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'
               }`}
             >
-              First Time Setup
+              Driver
             </button>
-          </div>
-        ) : (
-          <div className="flex rounded-lg bg-gray-100 p-1 animate-pulse">
-            <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
-            <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
           </div>
         )}
 
         {/* Login Forms */}
         <div className="bg-white py-8 px-6 shadow-xl rounded-lg">
-          {isMounted ? (
+           {isMounted ? (
             mode === 'regular' ? (
               // Regular Login Form
               <form onSubmit={handleRegularLogin} className="space-y-6">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
+                  {role === 'student' ? 'Student Email' : 'Driver Email'}
                 </label>
                 <div className="mt-1 relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -303,7 +349,7 @@ export default function LoginPage() {
                     className={`block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                       errors.email ? 'border-red-300' : 'border-gray-300'
                     }`}
-                    placeholder="Enter your email"
+                    placeholder={role === 'student' ? 'Enter student email' : 'Enter driver email'}
                   />
                 </div>
                 {errors.email && (
@@ -354,7 +400,7 @@ export default function LoginPage() {
                   disabled={isLoading}
                   className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? 'Signing in...' : 'Sign in'}
+                  {isLoading ? 'Signing in...' : role === 'student' ? 'Sign in as Student' : 'Sign in as Driver'}
                 </button>
               </div>
             </form>

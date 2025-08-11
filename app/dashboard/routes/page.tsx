@@ -36,6 +36,15 @@ interface RouteInfo {
   stops?: RouteStop[];
 }
 
+interface DriverInfo {
+  id: string;
+  name: string;
+  experience: number;
+  rating: number;
+  totalTrips: number;
+  phone: string;
+}
+
 interface RouteStop {
   id: string;
   stopName: string;
@@ -53,6 +62,7 @@ interface BoardingStop {
 export default function RoutesPage() {
   const [route, setRoute] = useState<RouteInfo | null>(null);
   const [boardingStop, setBoardingStop] = useState<BoardingStop | null>(null);
+  const [driver, setDriver] = useState<DriverInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -92,9 +102,20 @@ export default function RoutesPage() {
 
       const routeData = await studentHelpers.getStudentRouteAllocationFormatted(currentStudent.student_id);
       
+      // Log route data for debugging
+      console.log('Route data received:', {
+        hasRoute: !!routeData.route,
+        routeId: routeData.route?.id,
+        routeNumber: routeData.route?.routeNumber,
+        hasDriver: !!routeData.driver,
+        driverInfo: routeData.driver,
+        studentId: currentStudent.student_id
+      });
+      
       if (routeData.route) {
         setRoute(routeData.route);
         setBoardingStop(routeData.boardingStop);
+        setDriver(routeData.driver || null);
       } else {
         setError('No route allocation found');
       }
@@ -149,7 +170,7 @@ export default function RoutesPage() {
         </div>
 
         <Alert variant="warning" title="No Route Allocation">
-          {error || 'You have not been allocated a transport route yet. Please contact the administration for assistance.'}
+          {error || 'You have not been allocated a transport route yet. Please contact the administration to request route allocation.'}
         </Alert>
       </div>
     );
@@ -444,33 +465,44 @@ export default function RoutesPage() {
                 <h3 className="font-semibold text-gray-900">Driver Information</h3>
               </div>
               
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Avatar
-                    name="Rajesh Kumar"
-                    size="md"
-                    status="online"
-                  />
-                  <div>
-                    <p className="font-medium text-gray-900">Rajesh Kumar</p>
-                    <div className="flex items-center space-x-1">
-                      <Star className="h-4 w-4 text-yellow-500 fill-current" />
-                      <span className="text-sm text-gray-600">4.8 rating</span>
+              {driver ? (
+                <div className="space-y-4">
+                  <div className="flex items-center space-x-3">
+                    <Avatar
+                      name={driver.name}
+                      size="md"
+                      status="online"
+                    />
+                    <div>
+                      <p className="font-medium text-gray-900">{driver.name}</p>
+                      <div className="flex items-center space-x-1">
+                        <Star className="h-4 w-4 text-yellow-500 fill-current" />
+                        <span className="text-sm text-gray-600">{driver.rating.toFixed(1)} rating</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Experience:</span>
+                      <span className="font-medium text-gray-900">{driver.experience} years</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-gray-600">Total Trips:</span>
+                      <span className="font-medium text-gray-900">{driver.totalTrips.toLocaleString()}+</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm mt-1">
+                      <span className="text-gray-600">Contact:</span>
+                      <span className="font-medium text-gray-900">{driver.phone}</span>
                     </div>
                   </div>
                 </div>
-                
+              ) : (
                 <div className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-600">Experience:</span>
-                    <span className="font-medium text-gray-900">8 years</span>
-                  </div>
-                  <div className="flex items-center justify-between text-sm mt-1">
-                    <span className="text-gray-600">Total Trips:</span>
-                    <span className="font-medium text-gray-900">1,250+</span>
-                  </div>
+                  <p className="text-sm text-gray-600">Driver information not available</p>
+                  <p className="text-sm text-gray-500">Driver details will be updated once assigned to this route</p>
                 </div>
-              </div>
+              )}
             </Card>
           </motion.div>
 

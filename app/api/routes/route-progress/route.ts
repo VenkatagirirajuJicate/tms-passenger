@@ -64,6 +64,10 @@ export async function GET(request: NextRequest) {
           gps_speed,
           live_tracking_enabled
         ),
+        current_latitude,
+        current_longitude,
+        last_gps_update,
+        gps_speed,
         route_stops (
           id,
           stop_name,
@@ -156,6 +160,27 @@ export async function GET(request: NextRequest) {
           estimatedTimeToNextStop = Math.round(timeInHours * 60); // Convert to minutes
         }
       }
+    } else if (routeData.current_latitude && routeData.current_longitude && sortedStops.length > 0) {
+      // Fallback using route-level GPS (driver device updates)
+      const lat = routeData.current_latitude;
+      const lon = routeData.current_longitude;
+      const distances = sortedStops.map((stop: any, index: number) => {
+        if (!stop.latitude || !stop.longitude) return { index, distance: Infinity };
+        const R = 6371;
+        const dLat = (stop.latitude - lat) * Math.PI / 180;
+        const dLon = (stop.longitude - lon) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat * Math.PI / 180) * Math.cos(stop.latitude * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        return { index, distance };
+      });
+      const closest = distances.reduce((prev, curr) => prev.distance < curr.distance ? prev : curr);
+      currentStopIndex = Math.max(closest.index - 1, -1);
+      nextStopIndex = Math.min(currentStopIndex + 1, sortedStops.length - 1);
+      progressPercentage = ((currentStopIndex + 1) / sortedStops.length) * 100;
+      estimatedTimeToNextStop = null;
     }
 
     // Enhance stops with completion status
@@ -219,6 +244,12 @@ export async function GET(request: NextRequest) {
       const now = new Date();
       const minutesDiff = Math.floor((now.getTime() - lastUpdate.getTime()) / 60000);
       
+      if (minutesDiff <= 2) gpsStatus = 'online';
+      else if (minutesDiff <= 5) gpsStatus = 'recent';
+    } else if (routeData.last_gps_update) {
+      const lastUpdate = new Date(routeData.last_gps_update);
+      const now = new Date();
+      const minutesDiff = Math.floor((now.getTime() - lastUpdate.getTime()) / 60000);
       if (minutesDiff <= 2) gpsStatus = 'online';
       else if (minutesDiff <= 5) gpsStatus = 'recent';
     }

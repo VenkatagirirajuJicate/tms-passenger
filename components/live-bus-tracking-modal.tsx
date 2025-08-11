@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
@@ -128,13 +128,18 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
     };
   }, [isOpen, routeId]);
 
-  const fetchTrackingData = async () => {
+  const fetchTrackingData = useCallback(async () => {
     try {
       setError(null);
       
       const currentStudent = sessionManager.getCurrentStudent();
       if (!currentStudent) {
         throw new Error('No student session found');
+      }
+
+      // Check if it's a student object
+      if (!('student_id' in currentStudent)) {
+        throw new Error('Invalid session type - student required');
       }
 
       const studentId = currentStudent.student_id;
@@ -179,7 +184,7 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [routeId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);

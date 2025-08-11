@@ -56,6 +56,12 @@ export async function GET(request: NextRequest) {
         arrival_time,
         distance,
         duration,
+        current_latitude,
+        current_longitude,
+        gps_speed,
+        gps_heading,
+        gps_accuracy,
+        last_gps_update,
         vehicle_id,
         vehicles!fk_routes_vehicle (
           id,
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
           gps_heading,
           gps_accuracy,
           live_tracking_enabled,
-          gps_devices (
+          gps_devices!fk_vehicles_gps_device (
             device_id,
             device_name,
             status,
@@ -146,6 +152,19 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // If no vehicle or no device GPS, fall back to route-level GPS updated by driver device
+    let currentLocationFallback = null;
+    if (!vehicle?.current_latitude || !vehicle?.current_longitude) {
+      currentLocationFallback = {
+        latitude: routeData.current_latitude,
+        longitude: routeData.current_longitude,
+        accuracy: routeData.gps_accuracy,
+        speed: routeData.gps_speed,
+        heading: routeData.gps_heading,
+        lastUpdate: routeData.last_gps_update
+      };
+    }
+
     // Format response
     const trackingData = {
       route: {
@@ -172,7 +191,7 @@ export async function GET(request: NextRequest) {
           heading: vehicle.gps_heading,
           lastUpdate: vehicle.last_gps_update,
           timeSinceUpdate
-        } : null,
+        } : currentLocationFallback,
         device: vehicle?.gps_devices && vehicle.gps_devices.length > 0 ? {
           id: vehicle.gps_devices[0].device_id,
           name: vehicle.gps_devices[0].device_name,
