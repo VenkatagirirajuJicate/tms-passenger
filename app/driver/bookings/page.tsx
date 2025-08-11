@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { sessionManager } from '@/lib/session';
 import { driverHelpers } from '@/lib/supabase';
 import { Users, Calendar, Clock, MapPin } from 'lucide-react';
 
-export default function DriverBookingsPage() {
+function BookingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -181,6 +181,25 @@ export default function DriverBookingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+function BookingsFallback() {
+  return (
+    <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+        <p className="text-gray-600">Loading bookings...</p>
+      </div>
+    </div>
+  );
+}
+
+export default function DriverBookingsPage() {
+  return (
+    <Suspense fallback={<BookingsFallback />}>
+      <BookingsContent />
+    </Suspense>
   );
 }
 
