@@ -293,7 +293,7 @@ export default function DashboardLayout({
       {/* Main content */}
       <div className="lg:pl-80 flex flex-col h-full flex-1">
         {/* Enhanced Top bar */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-6">
+        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-4 sm:px-6">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 lg:hidden"
@@ -311,11 +311,11 @@ export default function DashboardLayout({
           <div className="hidden lg:flex lg:items-center lg:space-x-4">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                                 <input
-                   type="text"
-                   placeholder="Search transport..."
-                   className="w-96 pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                 />
+                <input
+                  type="text"
+                  placeholder="Search transport..."
+                  className="w-64 lg:w-80 xl:w-96 pl-4 pr-10 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <kbd className="px-2 py-1 text-xs font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded">
                     ⌘ F
@@ -325,7 +325,7 @@ export default function DashboardLayout({
             </div>
           </div>
 
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Notification Center */}
             {studentId && (
               <NotificationCenter 
@@ -347,7 +347,7 @@ export default function DashboardLayout({
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="container-modern py-8">
+          <div className="container-modern py-4 sm:py-6 lg:py-8">
             {children}
           </div>
         </main>

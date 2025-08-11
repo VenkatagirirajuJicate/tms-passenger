@@ -164,17 +164,17 @@ const PaymentHistoryViewer: React.FC<PaymentHistoryViewerProps> = ({ studentId }
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-xl font-bold text-gray-900">Payment History</h2>
           <p className="text-gray-600">Your transport fee payment records</p>
         </div>
         <button
           onClick={fetchPaymentHistory}
-          className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+          className="bg-gray-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-1 sm:space-x-2"
         >
           <RefreshCw className="w-4 h-4" />
-          <span>Refresh</span>
+          <span className="hidden sm:inline">Refresh</span>
         </button>
       </div>
 
@@ -194,56 +194,58 @@ const PaymentHistoryViewer: React.FC<PaymentHistoryViewerProps> = ({ studentId }
               animate={{ opacity: 1, y: 0 }}
               className={`p-6 rounded-lg border-2 ${getReceiptColorClass(payment.payment_type, payment.semester)}`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
+                <div className="flex items-center space-x-3 min-w-0 flex-1">
                   {getStatusIcon(payment.payment_status)}
-                  <div>
-                    <h3 className="font-semibold">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold truncate">
                       {getPaymentTypeLabel(payment.payment_type, payment.covers_terms)}
                     </h3>
-                    <p className="text-sm opacity-75">
+                    <p className="text-sm opacity-75 truncate">
                       {getStatusText(payment.payment_status)} • {new Date(payment.payment_date).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="text-right flex-shrink-0">
                   <div className="text-2xl font-bold">₹{payment.amount_paid}</div>
                   <div className="text-sm opacity-75">{payment.academic_year}</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <MapPin className="w-4 h-4 opacity-60" />
-                  <span className="text-sm">{payment.stop_name}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-4">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <MapPin className="w-4 h-4 opacity-60 flex-shrink-0" />
+                  <span className="text-sm truncate">{payment.stop_name}</span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Calendar className="w-4 h-4 opacity-60" />
-                  <span className="text-sm">
+                <div className="flex items-center space-x-2 min-w-0">
+                  <Calendar className="w-4 h-4 opacity-60 flex-shrink-0" />
+                  <span className="text-sm truncate">
                     {new Date(payment.valid_from).toLocaleDateString()} - {new Date(payment.valid_until).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <FileText className="w-4 h-4 opacity-60" />
-                  <span className="text-sm font-mono">{payment.receipt_number}</span>
+                <div className="flex items-center space-x-2 min-w-0 sm:col-span-2 lg:col-span-1">
+                  <FileText className="w-4 h-4 opacity-60 flex-shrink-0" />
+                  <span className="text-sm font-mono truncate">{payment.receipt_number}</span>
                 </div>
               </div>
 
               {payment.payment_status === 'confirmed' && (
-                <div className="flex space-x-3 pt-4 border-t border-current/20">
+                <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 pt-4 border-t border-current/20">
                   <button
                     onClick={() => showReceiptDetails(payment)}
-                    className="flex-1 bg-current/10 hover:bg-current/20 transition-colors px-4 py-2 rounded-lg flex items-center justify-center space-x-2"
+                    className="flex-1 bg-current/10 hover:bg-current/20 transition-colors px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-1 sm:space-x-2"
                   >
                     <Eye className="w-4 h-4" />
-                    <span>View Receipt</span>
+                    <span className="hidden sm:inline">View Receipt</span>
+                    <span className="sm:hidden">View</span>
                   </button>
                   <button
                     onClick={() => showReceiptDetails(payment)}
-                    className="flex-1 bg-current/10 hover:bg-current/20 transition-colors px-4 py-2 rounded-lg flex items-center justify-center space-x-2"
+                    className="flex-1 bg-current/10 hover:bg-current/20 transition-colors px-3 sm:px-4 py-2 rounded-lg flex items-center justify-center space-x-1 sm:space-x-2"
                   >
                     <Download className="w-4 h-4" />
-                    <span>Download</span>
+                    <span className="hidden sm:inline">Download</span>
+                    <span className="sm:hidden">Download</span>
                   </button>
                 </div>
               )}

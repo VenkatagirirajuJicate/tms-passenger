@@ -16,6 +16,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({
@@ -24,11 +30,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
+    <html lang="en" className="h-full overflow-x-hidden">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+      </head>
       <body
-        className={`${inter.variable} font-sans antialiased h-full bg-gray-50`}
+        className={`${inter.variable} font-sans antialiased h-full bg-gray-50 overflow-x-hidden`}
       >
-        <div id="root" className="h-full">
+        <div id="root" className="h-full overflow-x-hidden">
           {children}
         </div>
         <Toaster
@@ -38,6 +47,8 @@ export default function RootLayout({
             style: {
               background: '#363636',
               color: '#fff',
+              maxWidth: '90vw',
+              wordBreak: 'break-word',
             },
             success: {
               duration: 3000,

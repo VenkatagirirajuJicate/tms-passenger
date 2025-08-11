@@ -82,49 +82,49 @@ const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
         <motion.div
           variants={badgeVariants}
           animate="active"
-          className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 p-6 shadow-lg ${className}`}
+          className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 p-4 sm:p-6 shadow-lg w-full ${className}`}
         >
           {/* Background Pattern */}
           <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-600/10"></div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/20 rounded-full -translate-y-16 translate-x-16"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-200/20 rounded-full translate-y-12 -translate-x-12"></div>
+          <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-green-200/20 rounded-full -translate-y-12 sm:-translate-y-16 translate-x-12 sm:translate-x-16"></div>
+          <div className="absolute bottom-0 left-0 w-16 sm:w-24 h-16 sm:h-24 bg-emerald-200/20 rounded-full translate-y-8 sm:translate-y-12 -translate-x-8 sm:-translate-x-12"></div>
           
           {/* Content */}
           <div className="relative z-10">
             {/* Header with Icon */}
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-500 rounded-lg">
-                  <Shield className="w-6 h-6 text-white" />
+                <div className="p-2 bg-green-500 rounded-lg flex-shrink-0">
+                  <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold text-green-800">Account Active</h3>
-                  <p className="text-sm text-green-600">Transport services enabled</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-base sm:text-lg font-bold text-green-800 truncate">Account Active</h3>
+                  <p className="text-xs sm:text-sm text-green-600 truncate">Transport services enabled</p>
                 </div>
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
+              <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 flex-shrink-0" />
             </div>
 
             {/* Payment Details */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Last Paid Term:</span>
-                <span className="text-sm font-bold text-green-800">{lastPaidTerm.termName}</span>
+            <div className="space-y-2 sm:space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs sm:text-sm font-medium text-green-700">Last Paid Term:</span>
+                <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{lastPaidTerm.termName}</span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Academic Year:</span>
-                <span className="text-sm font-bold text-green-800">{lastPaidTerm.academicYear}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs sm:text-sm font-medium text-green-700">Academic Year:</span>
+                <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{lastPaidTerm.academicYear}</span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Amount Paid:</span>
-                <span className="text-sm font-bold text-green-800">{formatCurrency(lastPaidTerm.amount)}</span>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs sm:text-sm font-medium text-green-700">Amount Paid:</span>
+                <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{formatCurrency(lastPaidTerm.amount)}</span>
               </div>
               
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-green-700">Valid Until:</span>
-                <span className={`text-sm font-bold ${isNearExpiry ? 'text-orange-600' : 'text-green-800'}`}>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-xs sm:text-sm font-medium text-green-700">Valid Until:</span>
+                <span className={`text-xs sm:text-sm font-bold ${isNearExpiry ? 'text-orange-600' : 'text-green-800'} truncate`}>
                   {formatDate(lastPaidTerm.validUntil)}
                 </span>
               </div>
@@ -132,7 +132,7 @@ const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
 
             {/* Status Badge */}
             <div className="mt-4 flex items-center justify-center">
-              <div className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
+              <div className="px-3 sm:px-4 py-2 bg-green-500 text-white rounded-full text-xs sm:text-sm font-medium text-center">
                 ✓ All Services Available
               </div>
             </div>
@@ -141,8 +141,8 @@ const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
             {isNearExpiry && (
               <div className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
                 <div className="flex items-center space-x-2">
-                  <AlertTriangle className="w-4 h-4 text-orange-500" />
-                  <span className="text-sm text-orange-700">
+                  <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                  <span className="text-xs sm:text-sm text-orange-700">
                     Expires in {daysUntilExpiry} days
                   </span>
                 </div>
@@ -181,61 +181,51 @@ const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
       <motion.div
         variants={badgeVariants}
         animate="active"
-        className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 p-6 shadow-lg ${className}`}
+        className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-green-50 to-emerald-100 border-2 border-green-200 p-4 sm:p-6 shadow-lg w-full ${className}`}
       >
         {/* Background Pattern */}
         <div className="absolute inset-0 bg-gradient-to-br from-green-400/10 to-emerald-600/10"></div>
-        <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/20 rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-emerald-200/20 rounded-full translate-y-12 -translate-x-12"></div>
+        <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-green-200/20 rounded-full -translate-y-12 sm:-translate-y-16 translate-x-12 sm:translate-x-16"></div>
+        <div className="absolute bottom-0 left-0 w-16 sm:w-24 h-16 sm:h-24 bg-emerald-200/20 rounded-full translate-y-8 sm:translate-y-12 -translate-x-8 sm:-translate-x-12"></div>
         
         {/* Content */}
         <div className="relative z-10">
           {/* Header with Icon */}
-                      <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-500 rounded-lg">
-                  <Shield className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-green-800">Active Term Period</h3>
-                  <p className="text-sm text-green-600">Full access during {currentTerm}</p>
-                </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-green-500 rounded-lg flex-shrink-0">
+                <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               </div>
-              <CheckCircle className="w-8 h-8 text-green-500" />
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-lg font-bold text-green-800 truncate">Active Term Period</h3>
+                <p className="text-xs sm:text-sm text-green-600 truncate">Current academic term</p>
+              </div>
             </div>
+            <CheckCircle className="w-6 h-6 sm:w-8 sm:h-8 text-green-500 flex-shrink-0" />
+          </div>
 
-          {/* Status Information */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-700">Current Term:</span>
-              <span className="text-sm font-bold text-green-800">{currentTerm}</span>
+          {/* Term Details */}
+          <div className="space-y-2 sm:space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs sm:text-sm font-medium text-green-700">Current Term:</span>
+              <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{currentTerm}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-700">Term Period:</span>
-              <span className="text-sm font-bold text-green-800">{termPeriod}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs sm:text-sm font-medium text-green-700">Period:</span>
+              <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{termPeriod}</span>
             </div>
             
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-green-700">Payment Status:</span>
-              <span className="text-sm font-bold text-green-800">Not Required Yet</span>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs sm:text-sm font-medium text-green-700">End Date:</span>
+              <span className="text-xs sm:text-sm font-bold text-green-800 truncate">{termEndDate}</span>
             </div>
           </div>
 
           {/* Status Badge */}
           <div className="mt-4 flex items-center justify-center">
-            <div className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
-              ✓ All Services Available
-            </div>
-          </div>
-
-          {/* Info Notice */}
-          <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-            <div className="text-center">
-              <p className="text-sm text-green-700 font-medium mb-1">Access During Active Term</p>
-              <p className="text-xs text-green-600">
-                You have full access to all services during the current term period. Payment will be required after {termEndDate}.
-              </p>
+            <div className="px-3 sm:px-4 py-2 bg-green-500 text-white rounded-full text-xs sm:text-sm font-medium text-center">
+              ✓ Term Active
             </div>
           </div>
         </div>
@@ -243,77 +233,55 @@ const PaymentStatusBadge: React.FC<PaymentStatusBadgeProps> = ({
     );
   }
 
-  // Inactive Account Badge
+  // Inactive account
   return (
     <motion.div
       variants={badgeVariants}
       animate="inactive"
-      className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-400 p-6 shadow-lg ${className}`}
-      style={{ filter: 'grayscale(100%)' }}
+      className={`relative overflow-hidden rounded-xl bg-gradient-to-br from-red-50 to-orange-100 border-2 border-red-200 p-4 sm:p-6 shadow-lg w-full ${className}`}
     >
-      {/* Background Pattern - Muted */}
-      <div className="absolute inset-0 bg-gradient-to-br from-gray-500/10 to-gray-600/10"></div>
-      <div className="absolute top-0 right-0 w-32 h-32 bg-gray-300/20 rounded-full -translate-y-16 translate-x-16"></div>
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-gray-400/20 rounded-full translate-y-12 -translate-x-12"></div>
+      {/* Background Pattern */}
+      <div className="absolute inset-0 bg-gradient-to-br from-red-400/10 to-orange-600/10"></div>
+      <div className="absolute top-0 right-0 w-24 sm:w-32 h-24 sm:h-32 bg-red-200/20 rounded-full -translate-y-12 sm:-translate-y-16 translate-x-12 sm:translate-x-16"></div>
+      <div className="absolute bottom-0 left-0 w-16 sm:w-24 h-16 sm:h-24 bg-orange-200/20 rounded-full translate-y-8 sm:translate-y-12 -translate-x-8 sm:-translate-x-12"></div>
       
       {/* Content */}
       <div className="relative z-10">
         {/* Header with Icon */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-3 sm:space-y-0">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gray-500 rounded-lg">
-              <ShieldAlert className="w-6 h-6 text-white" />
+            <div className="p-2 bg-red-500 rounded-lg flex-shrink-0">
+              <ShieldAlert className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
             </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-700">Account Inactive</h3>
-              <p className="text-sm text-gray-600">Payment required to reactivate</p>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-base sm:text-lg font-bold text-red-800 truncate">Account Inactive</h3>
+              <p className="text-xs sm:text-sm text-red-600 truncate">Payment required for transport services</p>
             </div>
           </div>
-          <XCircle className="w-8 h-8 text-gray-500" />
+          <XCircle className="w-6 h-6 sm:w-8 sm:h-8 text-red-500 flex-shrink-0" />
         </div>
 
-        {/* Payment Required Details */}
-        <div className="space-y-3">
-          {lastPaidTerm && (
-            <>
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Last Payment:</span>
-                <span className="text-sm font-bold text-gray-700">
-                  {lastPaidTerm.termName} - {lastPaidTerm.academicYear}
-                </span>
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Expired On:</span>
-                <span className="text-sm font-bold text-red-600">
-                  {formatDate(lastPaidTerm.validUntil)}
-                </span>
-              </div>
-            </>
+        {/* Payment Required Info */}
+        <div className="space-y-2 sm:space-y-3">
+          {nextDueAmount && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs sm:text-sm font-medium text-red-700">Next Due Amount:</span>
+              <span className="text-xs sm:text-sm font-bold text-red-800 truncate">{formatCurrency(nextDueAmount)}</span>
+            </div>
           )}
           
-          {nextDueAmount && (
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-600">Amount Due:</span>
-              <span className="text-sm font-bold text-red-600">{formatCurrency(nextDueAmount)}</span>
+          {nextDueDate && (
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs sm:text-sm font-medium text-red-700">Due Date:</span>
+              <span className="text-xs sm:text-sm font-bold text-red-800 truncate">{formatDate(nextDueDate)}</span>
             </div>
           )}
         </div>
 
-        {/* Status Badge - Inactive */}
+        {/* Action Button */}
         <div className="mt-4 flex items-center justify-center">
-          <div className="px-4 py-2 bg-gray-500 text-white rounded-full text-sm font-medium">
+          <div className="px-3 sm:px-4 py-2 bg-red-500 text-white rounded-full text-xs sm:text-sm font-medium text-center">
             ⚠ Payment Required
-          </div>
-        </div>
-
-        {/* Action Required */}
-        <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-          <div className="text-center">
-            <p className="text-sm text-red-700 font-medium mb-2">Services Suspended</p>
-            <p className="text-xs text-red-600">
-              Please pay your term fee to reactivate booking and other services
-            </p>
           </div>
         </div>
       </div>

@@ -33,9 +33,9 @@ const CardTitle = ({ children, className = '' }: any) => (
 );
 
 const CardDescription = ({ children, className = '' }: any) => (
-  <p className={`text-sm text-gray-600 mt-1 ${className}`}>
+  <div className={`text-sm text-gray-600 mt-1 ${className}`}>
     {children}
-  </p>
+  </div>
 );
 
 const CardContent = ({ children, className = '' }: any) => (
@@ -277,31 +277,43 @@ const EnhancedPaymentInterface: React.FC<EnhancedPaymentInterfaceProps> = ({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6">
+    <div className="w-full max-w-6xl mx-auto space-y-6 overflow-x-hidden">
       {/* Header Information */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <CreditCard className="h-5 w-5" />
-            <span>Transport Fee Payment - Academic Year {paymentData.academic_year}</span>
+          <CardTitle className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-1 sm:space-y-0">
+            <div className="flex items-center space-x-2 min-w-0 flex-1">
+              <CreditCard className="h-5 w-5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="text-sm sm:text-base font-semibold text-gray-900">
+                  <span className="block sm:inline">Transport Fee Payment</span>
+                  <span className="block sm:inline sm:ml-1 text-gray-600">- Academic Year {paymentData.academic_year}</span>
+                </div>
+              </div>
+            </div>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="space-y-1">
             {paymentData.route && (
-              <span>Route: {paymentData.route.route_number} - {paymentData.route.route_name}</span>
+              <div className="text-sm text-gray-600 break-words">
+                <span className="font-medium">Route:</span> {paymentData.route.route_number} - {paymentData.route.route_name}
+              </div>
             )}
-            <br />
-            Boarding Stop: {paymentData.boarding_stop}
+            <div className="text-sm text-gray-600 break-words">
+              <span className="font-medium">Boarding Stop:</span> {paymentData.boarding_stop}
+            </div>
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center space-x-4">
-            <Badge variant="outline" className="flex items-center space-x-1">
-              <Clock className="h-3 w-3" />
-              <span>Current Term: {paymentData.current_term}</span>
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
+            <Badge variant="outline" className="flex items-center space-x-1 w-fit">
+              <Clock className="h-3 w-3 flex-shrink-0" />
+              <span className="hidden sm:inline">Current Term: {paymentData.current_term}</span>
+              <span className="sm:hidden">Term: {paymentData.current_term}</span>
             </Badge>
             {paymentData.paid_terms.length > 0 && (
-              <Badge variant="secondary">
-                Paid Terms: {paymentData.paid_terms.join(', ')}
+              <Badge variant="secondary" className="w-fit">
+                <span className="hidden sm:inline">Paid Terms: {paymentData.paid_terms.join(', ')}</span>
+                <span className="sm:hidden">Paid: {paymentData.paid_terms.join(', ')}</span>
               </Badge>
             )}
           </div>
@@ -309,7 +321,7 @@ const EnhancedPaymentInterface: React.FC<EnhancedPaymentInterfaceProps> = ({
       </Card>
 
       {/* Payment Options */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
         {paymentData.available_options.map((option, index) => (
           <Card 
             key={index}

@@ -349,21 +349,24 @@ export default function EnhancedPassengerDashboard({
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between"
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0"
       >
-        <div>
+        <div className="min-w-0 flex-1">
           <h1 className="text-heading-1 mb-2">Dashboard</h1>
           <p className="text-body">Plan, prioritize, and accomplish your transport tasks with ease.</p>
         </div>
-        <div className="flex items-center space-x-4">
-          <button className="btn-secondary">Import Data</button>
+        <div className="flex items-center space-x-2 sm:space-x-4">
+          <button className="btn-secondary flex items-center space-x-1 sm:space-x-2">
+            <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+            <span className="hidden sm:inline">Import Data</span>
+          </button>
           <button 
             onClick={handleRefresh}
             disabled={refreshing}
-            className="btn-primary flex items-center space-x-2"
+            className="btn-primary flex items-center space-x-1 sm:space-x-2"
           >
-            <RefreshCw className={`h-5 w-5 ${refreshing ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
+            <RefreshCw className={`h-4 w-4 sm:h-5 sm:w-5 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
       </motion.div>
@@ -393,12 +396,12 @@ export default function EnhancedPassengerDashboard({
             transition={{ delay: 0.3 }}
             className="modern-card p-8"
           >
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8 space-y-4 sm:space-y-0">
               <div className="flex items-center space-x-3">
-                <div className="p-3 bg-green-50 rounded-xl">
+                <div className="p-3 bg-green-50 rounded-xl flex-shrink-0">
                   <Zap className="w-6 h-6 text-green-600" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h2 className="text-heading-3">Quick Actions</h2>
                   <p className="text-body">Access your most-used transport features</p>
                 </div>
@@ -406,10 +409,10 @@ export default function EnhancedPassengerDashboard({
               <button 
                 onClick={handleRefresh}
                 disabled={refreshing}
-                className="btn-secondary flex items-center space-x-2"
+                className="btn-secondary flex items-center space-x-1 sm:space-x-2"
               >
                 <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
+                <span className="hidden sm:inline">Refresh</span>
               </button>
             </div>
             
