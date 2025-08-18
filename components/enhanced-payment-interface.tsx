@@ -277,7 +277,7 @@ const EnhancedPaymentInterface: React.FC<EnhancedPaymentInterfaceProps> = ({
   }
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 overflow-x-hidden">
+    <div className="w-full max-w-6xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header Information */}
       <Card>
         <CardHeader>
@@ -321,7 +321,7 @@ const EnhancedPaymentInterface: React.FC<EnhancedPaymentInterfaceProps> = ({
       </Card>
 
       {/* Payment Options */}
-      <div className="grid gap-4 sm:gap-6 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2">
         {paymentData.available_options.map((option, index) => (
           <Card 
             key={index}
@@ -339,23 +339,23 @@ const EnhancedPaymentInterface: React.FC<EnhancedPaymentInterfaceProps> = ({
             onClick={() => option.is_available && !option.is_paid ? setSelectedOption(option) : null}
           >
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg flex items-center space-x-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-2 sm:space-y-0">
+                <CardTitle className="text-base sm:text-lg flex items-center space-x-2 min-w-0 flex-1">
                   {option.is_paid && (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-600 flex-shrink-0" />
                   )}
                   {option.payment_type === 'full_year' && !option.is_paid && (
-                    <Sparkles className="h-5 w-5 text-yellow-500" />
+                    <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 flex-shrink-0" />
                   )}
-                  <span>{option.description}</span>
+                  <span className="truncate">{option.description}</span>
                   {option.is_paid && (
-                    <Badge className="ml-2 bg-green-100 text-green-800">Paid</Badge>
+                    <Badge className="ml-1 sm:ml-2 bg-green-100 text-green-800 flex-shrink-0">Paid</Badge>
                   )}
                   {option.is_recommended && !option.is_paid && (
-                    <Badge variant="default" className="ml-2">Recommended</Badge>
+                    <Badge variant="default" className="ml-1 sm:ml-2 flex-shrink-0">Recommended</Badge>
                   )}
                 </CardTitle>
-                <Badge className={getReceiptBadgeColor(option.receipt_color)}>
+                <Badge className={`${getReceiptBadgeColor(option.receipt_color)} flex-shrink-0`}>
                   {option.receipt_color} receipt
                 </Badge>
               </div>

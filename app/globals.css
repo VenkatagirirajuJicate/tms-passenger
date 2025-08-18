@@ -280,6 +280,84 @@ body {
   }
 }
 
+/* Enhanced Mobile Responsiveness */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile-first responsive utilities */
+@media (max-width: 640px) {
+  .container-modern {
+    padding: 0 var(--space-2);
+  }
+  
+  /* Prevent horizontal overflow on mobile */
+  .overflow-x-hidden {
+    overflow-x: hidden;
+  }
+  
+  /* Ensure proper text wrapping */
+  .break-words {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+  
+  /* Responsive text sizing */
+  .text-responsive {
+    font-size: 0.875rem;
+  }
+  
+  @media (min-width: 640px) {
+    .text-responsive {
+      font-size: 1rem;
+    }
+  }
+}
+
+/* Overlay and Z-index Management */
+.notification-center {
+  z-index: 30;
+}
+
+.sidebar-overlay {
+  z-index: 40;
+}
+
+.toast-notifications {
+  z-index: 9999;
+}
+
+/* Prevent content overflow */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Mobile-specific overlay fixes */
+@media (max-width: 768px) {
+  /* Ensure notification center doesn't overflow on mobile */
+  .notification-panel {
+    max-width: calc(100vw - 2rem);
+    right: 1rem;
+    left: 1rem;
+  }
+  
+  /* Prevent sidebar from causing horizontal scroll */
+  .sidebar-container {
+    max-width: 100vw;
+  }
+  
+  /* Ensure main content doesn't overflow */
+  .main-content {
+    overflow-x: hidden;
+    width: 100%;
+  }
+}
+
 /* Animation Classes */
 .fade-in {
   animation: fadeIn 0.5s ease-in-out;

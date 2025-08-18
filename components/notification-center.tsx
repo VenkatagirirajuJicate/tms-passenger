@@ -345,7 +345,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
   }, [isOpen, fetchNotifications, fetchSettings]);
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} style={{ zIndex: 30 }}>
       {/* Enhanced Bell Icon */}
       <button
         onClick={handleBellClick}
@@ -383,7 +383,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className="absolute right-0 mt-3 w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden"
+            className="absolute right-0 mt-3 w-80 sm:w-96 bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden max-h-[80vh] overflow-y-auto notification-panel sm:right-0 right-2"
           >
             {/* Enhanced Header */}
             <div className="bg-gradient-to-r from-blue-50 via-blue-50 to-purple-50 p-6 border-b border-gray-100">

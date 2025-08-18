@@ -373,30 +373,30 @@ const NotificationsPage = () => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-          <div className="min-w-0 flex-1">
-            <h1 className="text-2xl font-bold text-gray-900">Notifications</h1>
-            <p className="text-gray-600 mt-1">
-              Stay updated with your transport and payment notifications
-            </p>
-          </div>
-          <div className="flex items-center space-x-2 sm:space-x-3">
+    <div className="max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 min-w-0">
+              {/* Header */}
+        <div className="mb-4 sm:mb-6 lg:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+            <div className="min-w-0 flex-1">
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Notifications</h1>
+              <p className="text-sm sm:text-base text-gray-600 mt-1">
+                Stay updated with your transport and payment notifications
+              </p>
+            </div>
+            <div className="flex items-center space-x-1 sm:space-x-2 lg:space-x-3">
             <button
               onClick={handleManualRefresh}
               disabled={loading}
-              className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3 h-3 sm:w-4 sm:h-4 ${loading ? 'animate-spin' : ''}`} />
               <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               onClick={() => setShowSettings(!showSettings)}
-              className="flex items-center space-x-1 sm:space-x-2 px-3 sm:px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 lg:px-4 py-2 text-xs sm:text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Settings</span>
             </button>
             <button
@@ -411,7 +411,7 @@ const NotificationsPage = () => {
         </div>
         
         {/* Stats */}
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2 md:gap-3 lg:gap-4">
+        <div className="mt-4 sm:mt-6 grid grid-cols-2 gap-2 sm:gap-3 lg:gap-4">
           <div className="bg-white rounded-lg p-1.5 sm:p-2 md:p-3 lg:p-4 shadow-sm border border-gray-200">
             <div className="flex items-center">
               <Bell className="w-2.5 h-2.5 sm:w-3 sm:h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 text-gray-400 mr-1 sm:mr-1.5 md:mr-2 lg:mr-3 flex-shrink-0" />
@@ -528,8 +528,8 @@ const NotificationsPage = () => {
       )}
 
       {/* Filters */}
-      <div className="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
-        <div className="flex flex-col space-y-4">
+      <div className="mb-4 sm:mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+        <div className="flex flex-col space-y-3 sm:space-y-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -541,11 +541,11 @@ const NotificationsPage = () => {
             />
           </div>
           
-          <div className="flex flex-col sm:flex-row sm:items-center space-y-3 sm:space-y-0 sm:space-x-3">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 lg:space-x-3">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
               <option value="all">All Categories</option>
               <option value="transport">Transport</option>
@@ -557,7 +557,7 @@ const NotificationsPage = () => {
             <select
               value={selectedType}
               onChange={(e) => setSelectedType(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="px-2 sm:px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
             >
               <option value="all">All Types</option>
               <option value="info">Info</option>
@@ -568,13 +568,13 @@ const NotificationsPage = () => {
             
             <button
               onClick={() => setShowUnreadOnly(!showUnreadOnly)}
-              className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
+              className={`px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
                 showUnreadOnly 
                   ? 'bg-blue-100 text-blue-800 border border-blue-300' 
                   : 'bg-gray-100 text-gray-700 border border-gray-300 hover:bg-gray-200'
               }`}
             >
-              <Filter className="w-4 h-4 mr-1 inline" />
+              <Filter className="w-3 h-3 sm:w-4 sm:h-4 mr-1 inline" />
               Unread only
             </button>
           </div>
@@ -609,13 +609,13 @@ const NotificationsPage = () => {
                   key={notification.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`p-4 sm:p-6 hover:bg-gray-50 transition-colors ${
+                  className={`p-3 sm:p-4 lg:p-6 hover:bg-gray-50 transition-colors ${
                     !notification.read ? 'bg-blue-50' : ''
                   }`}
                 >
-                  <div className="flex items-start space-x-3 sm:space-x-4">
+                  <div className="flex items-start space-x-2 sm:space-x-3 lg:space-x-4">
                     <div className="flex-shrink-0">
-                      <TypeIcon className={`w-5 h-5 sm:w-6 sm:h-6 ${
+                      <TypeIcon className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 ${
                         notification.type === 'error' ? 'text-red-500' :
                         notification.type === 'warning' ? 'text-yellow-500' :
                         notification.type === 'success' ? 'text-green-500' :
@@ -630,8 +630,8 @@ const NotificationsPage = () => {
                         }`}>
                           {notification.title}
                         </h4>
-                        <div className="flex items-center space-x-2 min-w-0">
-                          <CategoryIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                        <div className="flex items-center space-x-1 sm:space-x-2 min-w-0">
+                          <CategoryIcon className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 flex-shrink-0" />
                           <span className="text-xs text-gray-500 truncate">
                             {new Date(notification.created_at).toLocaleString()}
                           </span>
@@ -644,17 +644,17 @@ const NotificationsPage = () => {
                         {notification.message}
                       </p>
                       
-                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 space-y-2 sm:space-y-0">
-                        <div className="flex items-center space-x-2 flex-wrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getTypeColor(notification.type)}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 sm:mt-3 space-y-2 sm:space-y-0">
+                        <div className="flex items-center space-x-1 sm:space-x-2 flex-wrap">
+                          <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getTypeColor(notification.type)}`}>
                             {notification.type}
                           </span>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getCategoryColor(notification.category)}`}>
+                          <span className={`inline-flex px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs font-semibold rounded-full ${getCategoryColor(notification.category)}`}>
                             {notification.category}
                           </span>
                         </div>
                         
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-1 sm:space-x-2">
                           {notification.actionable && notification.primary_action && (
                             <button
                               onClick={() => handleActionClick(notification.primary_action!)}
@@ -670,7 +670,7 @@ const NotificationsPage = () => {
                               onClick={() => markAsRead(notification.id)}
                               className="text-blue-600 hover:text-blue-800 transition-colors"
                             >
-                              <Check className="w-4 h-4" />
+                              <Check className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           )}
                         </div>

@@ -49,6 +49,7 @@ export default function RootLayout({
               color: '#fff',
               maxWidth: '90vw',
               wordBreak: 'break-word',
+              zIndex: 9999,
             },
             success: {
               duration: 3000,

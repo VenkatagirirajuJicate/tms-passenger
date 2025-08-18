@@ -118,7 +118,7 @@ export default function DashboardLayout({
   return (
     <div className="h-screen bg-gray-50 overflow-hidden flex">
       {/* Enhanced Mobile sidebar */}
-      <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? '' : 'pointer-events-none'}`}>
+      <div className={`fixed inset-0 z-40 lg:hidden sidebar-overlay ${sidebarOpen ? '' : 'pointer-events-none'}`}>
         <div
           className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-all duration-300 ease-out ${
             sidebarOpen ? 'opacity-100' : 'opacity-0'
@@ -293,9 +293,9 @@ export default function DashboardLayout({
       </div>
 
       {/* Main content */}
-      <div className="lg:pl-80 flex flex-col h-full flex-1">
+      <div className="lg:pl-80 flex flex-col h-full flex-1 min-w-0">
         {/* Enhanced Top bar */}
-        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-4 sm:px-6">
+        <div className="bg-white/80 backdrop-blur-xl border-b border-gray-200 flex h-16 flex-shrink-0 items-center justify-between px-4 sm:px-6 min-w-0">
           <button
             onClick={() => setSidebarOpen(true)}
             className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-all duration-200 lg:hidden"
@@ -348,8 +348,8 @@ export default function DashboardLayout({
         </div>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
-          <div className="container-modern py-4 sm:py-6 lg:py-8">
+        <main className="flex-1 overflow-y-auto bg-gray-50 min-w-0 main-content">
+          <div className="container-modern py-2 sm:py-4 lg:py-6 min-w-0">
             {children}
           </div>
         </main>

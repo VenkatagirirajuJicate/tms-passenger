@@ -72,8 +72,8 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
-      <div className="max-w-7xl mx-auto space-y-6 w-full">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4 lg:p-6 overflow-x-hidden">
+      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-4 sm:p-6 text-white">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
@@ -92,7 +92,7 @@ export default function PaymentsPage() {
         {/* Tab Navigation */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-4 sm:space-x-8 px-4 sm:px-6 overflow-x-auto">
+            <nav className="flex space-x-2 sm:space-x-4 lg:space-x-8 px-2 sm:px-4 lg:px-6 overflow-x-auto scrollbar-hide">
               {[
                 { id: 'payments', label: 'Make Payment', icon: '💳' },
                 { id: 'receipts', label: 'Payment History & Receipts', icon: '🧾' }
@@ -100,20 +100,20 @@ export default function PaymentsPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-3 sm:py-4 px-1 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 whitespace-nowrap flex-shrink-0 ${
+                  className={`py-2 sm:py-3 lg:py-4 px-2 sm:px-3 border-b-2 font-medium text-xs sm:text-sm flex items-center space-x-1 sm:space-x-2 whitespace-nowrap flex-shrink-0 min-w-0 ${
                     activeTab === tab.id
                       ? 'border-blue-500 text-blue-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >
-                  <span>{tab.icon}</span>
+                  <span className="flex-shrink-0">{tab.icon}</span>
                   <span className="truncate">{tab.label}</span>
                 </button>
               ))}
             </nav>
           </div>
 
-          <div className="p-6">
+          <div className="p-3 sm:p-4 lg:p-6">
             {activeTab === 'payments' && (
               <EnhancedPaymentInterface
                 studentId={student.id}
