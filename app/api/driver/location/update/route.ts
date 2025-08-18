@@ -80,13 +80,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store location in location_tracking table if routeId is provided
+    // Store location in location_tracking table and update route GPS data if routeId is provided
     if (routeId) {
       try {
         // First check if the route exists
         const { data: route, error: routeError } = await supabase
           .from('routes')
-          .select('id')
+          .select('id, live_tracking_enabled')
           .eq('id', routeId)
           .single();
 
@@ -95,6 +95,26 @@ export async function POST(request: NextRequest) {
           // Don't fail the entire request if route doesn't exist
         } else {
           const trackingDate = new Date().toISOString().split('T')[0];
+          
+          // Update route's GPS data for live tracking
+          if (route.live_tracking_enabled) {
+            const { error: routeUpdateError } = await supabase
+              .from('routes')
+              .update({
+                current_latitude: latitude,
+                current_longitude: longitude,
+                gps_accuracy: accuracy ? Math.round(accuracy) : null,
+                last_gps_update: locationTimestamp,
+                gps_speed: null, // Will be calculated if needed
+                gps_heading: null // Will be calculated if needed
+              })
+              .eq('id', routeId);
+
+            if (routeUpdateError) {
+              console.error('Error updating route GPS data:', routeUpdateError);
+              // Don't fail the entire request if route update fails
+            }
+          }
           
           const { error: trackingError } = await supabase
             .from('location_tracking')

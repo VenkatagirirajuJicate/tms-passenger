@@ -17,7 +17,8 @@ import {
   CheckCircle,
   Target,
   Route as RouteIcon,
-  ExternalLink
+  ExternalLink,
+  XCircle
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sessionManager } from '@/lib/session';
@@ -45,22 +46,44 @@ interface TrackingData {
   gps: {
     enabled: boolean;
     status: 'online' | 'recent' | 'offline';
+    locationSource?: 'vehicle_gps' | 'driver_app' | 'route_gps' | 'none';
+    locationStatus?: 'vehicle_gps' | 'driver_app' | 'route_gps' | 'no_location' | 'sharing_disabled' | 'no_driver' | 'no_vehicle';
+    statusMessage?: string;
     currentLocation: {
       latitude: number;
       longitude: number;
       accuracy: number;
-      speed: number;
-      heading: number;
+      speed: number | null;
+      heading: number | null;
       lastUpdate: string;
-      timeSinceUpdate: number;
+      source?: string;
     } | null;
+    timeSinceUpdate?: number;
     device: {
       id: string;
       name: string;
       status: string;
       lastHeartbeat: string;
     } | null;
+    fallbackInfo?: {
+      hasVehicle: boolean;
+      hasDriver: boolean;
+      driverSharingEnabled: boolean;
+      vehicleTrackingEnabled: boolean;
+      routeTrackingEnabled: boolean;
+    };
   };
+  vehicle?: {
+    id: string;
+    registrationNumber: string;
+    model: string;
+  } | null;
+  driver?: {
+    id: string;
+    name: string;
+    locationSharingEnabled: boolean;
+    trackingStatus: string;
+  } | null;
   estimatedArrival: {
     boardingStop: string;
     estimatedMinutes: number;
@@ -229,6 +252,21 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
     return updateTime.toLocaleDateString();
   };
 
+  const getLocationIssueMessage = (locationStatus?: string) => {
+    switch (locationStatus) {
+      case 'sharing_disabled':
+        return 'The driver has disabled location sharing. Please contact the driver or administration.';
+      case 'no_driver':
+        return 'No driver is currently assigned to this route. Please contact administration.';
+      case 'no_vehicle':
+        return 'No vehicle is currently assigned to this route. Please contact administration.';
+      case 'no_location':
+        return 'Location data is not available. The driver may be offline or location sharing is disabled.';
+      default:
+        return 'Location tracking is temporarily unavailable. Please try again later.';
+    }
+  };
+
   if (!isOpen) return null;
 
   if (loading) {
@@ -315,7 +353,7 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
 
         <div className="p-6 max-h-[80vh] overflow-y-auto space-y-6">
           {/* GPS Status */}
-          {isGPSEnabled ? (
+          {trackingData?.gps?.currentLocation ? (
             <div className={`border rounded-lg p-4 ${getStatusColor(gpsStatus)}`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
@@ -328,6 +366,13 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
                     <p className="text-sm opacity-75">
                       Last update: {formatTimeSince(trackingData?.gps?.currentLocation?.lastUpdate || '')}
                     </p>
+                    {trackingData?.gps?.locationSource && (
+                      <p className="text-xs opacity-75 mt-1">
+                        Source: {trackingData.gps.locationSource === 'vehicle_gps' ? 'Vehicle GPS Device' :
+                                trackingData.gps.locationSource === 'driver_app' ? 'Driver App' :
+                                trackingData.gps.locationSource === 'route_gps' ? 'Route GPS' : 'Unknown'}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <button
@@ -340,12 +385,69 @@ export default function LiveBusTrackingModal({ isOpen, onClose, routeId }: LiveB
               </div>
             </div>
           ) : (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <div className="flex items-center space-x-3">
-                <Target className="w-5 h-5 text-gray-500" />
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <AlertCircle className="w-5 h-5 text-yellow-600" />
+                  <div>
+                    <h3 className="font-semibold text-yellow-800">
+                      {trackingData?.gps?.statusMessage || 'Location Tracking Unavailable'}
+                    </h3>
+                    <p className="text-sm text-yellow-700">
+                      {getLocationIssueMessage(trackingData?.gps?.locationStatus)}
+                    </p>
+                    {trackingData?.gps?.fallbackInfo && (
+                      <div className="mt-2 text-xs text-yellow-600">
+                        <p>• Vehicle: {trackingData.gps.fallbackInfo.hasVehicle ? 'Assigned' : 'Not assigned'}</p>
+                        <p>• Driver: {trackingData.gps.fallbackInfo.hasDriver ? 'Assigned' : 'Not assigned'}</p>
+                        {trackingData.gps.fallbackInfo.hasDriver && (
+                          <p>• Location Sharing: {trackingData.gps.fallbackInfo.driverSharingEnabled ? 'Enabled' : 'Disabled'}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={refreshing}
+                  className="p-2 rounded-lg bg-yellow-100 hover:bg-yellow-200 transition-colors"
+                >
+                  <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''} text-yellow-700`} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Driver Information */}
+          {trackingData?.driver && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center space-x-3 mb-3">
+                <User className="w-5 h-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-900">Driver Information</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h3 className="font-semibold text-gray-700">GPS Tracking Not Available</h3>
-                  <p className="text-sm text-gray-600">This route does not have live tracking enabled</p>
+                  <p className="text-sm text-blue-700">Driver Name</p>
+                  <p className="font-medium text-blue-900">{trackingData.driver.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-blue-700">Location Sharing</p>
+                  <div className="flex items-center space-x-2">
+                    {trackingData.driver.locationSharingEnabled ? (
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    ) : (
+                      <XCircle className="w-4 h-4 text-red-600" />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      trackingData.driver.locationSharingEnabled ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      {trackingData.driver.locationSharingEnabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-blue-700">Tracking Status</p>
+                  <p className="font-medium text-blue-900 capitalize">{trackingData.driver.trackingStatus}</p>
                 </div>
               </div>
             </div>

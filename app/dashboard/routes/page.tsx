@@ -3,6 +3,7 @@
 import React, { useState, useEffect, Fragment } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { 
   Bus, 
   MapPin, 
@@ -21,7 +22,7 @@ import { studentHelpers } from '@/lib/supabase';
 import { sessionManager } from '@/lib/session';
 import { RouteAccessControl } from '@/components/account-access-control';
 import { Card, Button, Badge, Spinner, Alert, Avatar } from '@/components/modern-ui-components';
-import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
+
 import toast from 'react-hot-toast';
 
 interface RouteInfo {
@@ -60,12 +61,13 @@ interface BoardingStop {
 }
 
 export default function RoutesPage() {
+  const router = useRouter();
   const [route, setRoute] = useState<RouteInfo | null>(null);
   const [boardingStop, setBoardingStop] = useState<BoardingStop | null>(null);
   const [driver, setDriver] = useState<DriverInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
   const [nextDueAmount, setNextDueAmount] = useState<number | null>(null);
 
@@ -524,7 +526,7 @@ export default function RoutesPage() {
                   fullWidth 
                   variant="secondary" 
                   icon={Navigation}
-                  onClick={() => setIsTrackingModalOpen(true)}
+                  onClick={() => router.push('/dashboard/live-track')}
                 >
                   Track Bus
                 </Button>
@@ -538,12 +540,7 @@ export default function RoutesPage() {
       </div>
       </RouteAccessControl>
 
-      {/* Live Bus Tracking Modal */}
-      <LiveBusTrackingModal 
-        isOpen={isTrackingModalOpen}
-        onClose={() => setIsTrackingModalOpen(false)}
-        routeId={route?.id}
-      />
+
     </div>
   );
 } 

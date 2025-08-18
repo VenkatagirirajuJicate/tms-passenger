@@ -16,7 +16,8 @@ import {
   Bus,
   MapPin,
   Settings,
-  BarChart3
+  BarChart3,
+  Navigation
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { sessionManager } from '@/lib/session';
@@ -45,6 +46,7 @@ export default function DashboardLayout({
   const navigation: NavigationItem[] = useMemo(() => [
     { name: 'Dashboard', href: '/dashboard', icon: Home, current: pathname === '/dashboard' },
     { name: 'My Routes', href: '/dashboard/routes', icon: MapPin, current: pathname === '/dashboard/routes' },
+    { name: 'Live Track', href: '/dashboard/live-track', icon: Navigation, current: pathname === '/dashboard/live-track' },
     { name: 'Schedules', href: '/dashboard/schedules', icon: Calendar, current: pathname === '/dashboard/schedules' },
     { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, current: pathname === '/dashboard/payments' },
     { name: 'Grievances', href: '/dashboard/grievances', icon: MessageSquare, current: pathname === '/dashboard/grievances' },
