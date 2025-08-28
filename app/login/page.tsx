@@ -37,10 +37,9 @@ export default function LoginPage() {
       console.log('🔄 Detected user redirected back from MYJKKN without completing OAuth');
       console.log('🔄 Auto-triggering OAuth workaround for seamless authentication...');
       
-      // Automatically redirect to appropriate callback with recovery flag
-      const callbackPath = isDriverOAuth ? '/auth/driver-callback' : '/auth/callback';
-      const callbackUrl = new URL(callbackPath, window.location.origin);
-      callbackUrl.searchParams.append('recovery', isDriverOAuth ? 'driver_redirect' : 'myjkkn_redirect');
+      // Automatically redirect to unified callback with recovery flag
+      const callbackUrl = new URL('/auth/callback', window.location.origin);
+      callbackUrl.searchParams.append('recovery', 'myjkkn_redirect');
       callbackUrl.searchParams.append('state', sessionStorage.getItem('oauth_state') || '');
       
       // Small delay to show user what's happening

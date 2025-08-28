@@ -118,20 +118,18 @@ class ParentAuthService {
     const appId = process.env.NEXT_PUBLIC_APP_ID || 'transport_management_system_menrm674';
     const apiKey = process.env.NEXT_PUBLIC_API_KEY || 'app_e20655605d48ebce_cfa1ffe34268949a';
     
-    // Get OAuth role to determine correct redirect URI
+    // Get OAuth role to determine user type
     const oauthRole = typeof window !== 'undefined' ? sessionStorage.getItem('tms_oauth_role') : null;
     const userType = oauthRole || 'passenger';
     
-    // Use driver-specific callback URL for driver OAuth
-    const redirectUri = userType === 'driver' 
-      ? (process.env.NEXT_PUBLIC_DRIVER_REDIRECT_URI || 'http://localhost:3003/auth/driver-callback')
-      : (process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback');
+    // Use unified callback URL for both passenger and driver
+    const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback';
     
-    console.log('🔗 [PARENT AUTH] Redirect URI selection:', {
+    console.log('🔗 [PARENT AUTH] Unified callback URL configuration:', {
       userType,
       oauthRole,
-      selectedRedirectUri: redirectUri,
-      isDriverCallback: userType === 'driver'
+      redirectUri,
+      isDriverOAuth: userType === 'driver'
     });
     
     // Add parameters in specific order (some OAuth servers are sensitive to parameter order)
@@ -151,7 +149,7 @@ class ParentAuthService {
       response_type: 'code',
       app_id: process.env.NEXT_PUBLIC_APP_ID || 'transport_management_system_menrm674',
       api_key: (process.env.NEXT_PUBLIC_API_KEY || 'app_e20655605d48ebce_cfa1ffe34268949a').substring(0, 15) + '...',
-      redirect_uri: process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback',
+      redirect_uri: redirectUri,
       scope: 'read write profile',
       user_type: userType,
       oauth_role: userType,
@@ -161,7 +159,7 @@ class ParentAuthService {
     console.log('🔗 [PARENT AUTH] Environment Variables Check:', {
       PARENT_APP_URL: process.env.NEXT_PUBLIC_PARENT_APP_URL || 'https://my.jkkn.ac.in',
       APP_ID: process.env.NEXT_PUBLIC_APP_ID || 'transport_management_system_menrm674',
-      REDIRECT_URI: process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback',
+      REDIRECT_URI: redirectUri,
       API_KEY_SET: !!(process.env.NEXT_PUBLIC_API_KEY)
     });
 

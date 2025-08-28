@@ -1,168 +1,155 @@
-# 🚗 Driver-Specific OAuth Callback URL Implementation ✅
+# 🔄 Unified OAuth Callback URL Implementation ✅
 
 ## 🎯 **Overview**
 
-Implemented a **separate callback URL** for driver OAuth authentication to help MYJKKN distinguish between passenger and driver authentication flows more clearly.
+Implemented a **unified callback URL** for both passenger and driver OAuth authentication to simplify the authentication flow and improve maintainability.
 
 ## 🔧 **Implementation Details**
 
-### **1. Separate Callback URLs**
+### **1. Unified Callback URL**
 
-- **Passenger OAuth**: `http://localhost:3003/auth/callback`
-- **Driver OAuth**: `http://localhost:3003/auth/driver-callback`
+- **Single Callback URL**: `http://localhost:3003/auth/callback` (or production equivalent)
+- **Role Detection**: Uses session storage flag `tms_oauth_role` to determine user type
+- **Smart Redirects**: Automatically redirects to appropriate dashboard based on role
 
-### **2. New Driver Callback Page** ✅
-**File**: `app/auth/driver-callback/page.tsx`
+### **2. Enhanced Callback Page** ✅
+**File**: `app/auth/callback/page.tsx`
 
 **Features**:
-- **Driver-specific processing**: Handles only driver OAuth flows
-- **Enhanced logging**: All logs prefixed with `🚗 [DRIVER CALLBACK]`
-- **Driver-focused UI**: Green-themed loading and error states
-- **Automatic driver role setting**: Sets `tms_oauth_role: 'driver'`
-- **Driver dashboard redirect**: Always redirects to `/driver` on success
-- **Driver-specific error handling**: Tailored error messages for driver issues
+- **Unified processing**: Handles both passenger and driver OAuth flows
+- **Role detection**: Checks `sessionStorage.getItem('tms_oauth_role')` for user type
+- **Smart routing**: Redirects to `/dashboard` for passengers, `/driver` for drivers
+- **Enhanced logging**: All logs show role-specific information
+- **Backward compatibility**: Maintains support for existing OAuth flows
+- **Error handling**: Comprehensive error handling for both user types
 
 ### **3. Environment Variables** ✅
 **File**: `.env.local`
 
 ```env
-# OAuth Redirect URIs
-NEXT_PUBLIC_REDIRECT_URI=http://localhost:3003/auth/callback
-NEXT_PUBLIC_DRIVER_REDIRECT_URI=http://localhost:3003/auth/driver-callback
+# Unified OAuth Redirect URI
+NEXT_PUBLIC_REDIRECT_URI=https://tms-passenger.vercel.app/auth/callback
 ```
 
-### **4. Smart Redirect URI Selection** ✅
+### **4. Backward Compatibility** ✅
+**File**: `app/auth/driver-callback/page.tsx`
+
+- **Redirect mechanism**: Old driver callback URL redirects to unified callback
+- **Parameter preservation**: All URL parameters are preserved during redirect
+- **Role setting**: Automatically sets driver role flag for unified processing
+
+### **5. Parent Auth Service Updates** ✅
 **File**: `lib/auth/parent-auth-service.ts`
 
 ```typescript
-// Use driver-specific callback URL for driver OAuth
-const redirectUri = userType === 'driver' 
-  ? (process.env.NEXT_PUBLIC_DRIVER_REDIRECT_URI || 'http://localhost:3003/auth/driver-callback')
-  : (process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback');
+// Use unified callback URL for both passenger and driver
+const redirectUri = process.env.NEXT_PUBLIC_REDIRECT_URI || 'http://localhost:3003/auth/callback';
+
+// Role detection for logging and debugging
+const oauthRole = typeof window !== 'undefined' ? sessionStorage.getItem('tms_oauth_role') : null;
+const userType = oauthRole || 'passenger';
 ```
 
-### **5. Enhanced Recovery Logic** ✅
+### **6. Login Page Updates** ✅
 **File**: `app/login/page.tsx`
 
-```typescript
-// Automatically redirect to appropriate callback with recovery flag
-const callbackPath = isDriverOAuth ? '/auth/driver-callback' : '/auth/callback';
-const callbackUrl = new URL(callbackPath, window.location.origin);
-callbackUrl.searchParams.append('recovery', isDriverOAuth ? 'driver_redirect' : 'myjkkn_redirect');
-```
+- **Unified recovery**: Uses single callback URL for OAuth recovery
+- **Role-based processing**: Maintains role detection for proper redirects
 
-## 🎨 **User Experience**
+## 🚀 **Benefits**
 
-### **Driver OAuth Flow**
-```
-1. User selects "Driver" → sessionStorage.setItem('tms_oauth_role', 'driver')
-2. OAuth URL generated with: redirect_uri=http://localhost:3003/auth/driver-callback
-3. MYJKKN processes driver-specific OAuth request
-4. MYJKKN redirects to: http://localhost:3003/auth/driver-callback?code=...
-5. Driver callback page processes authentication
-6. Success → Redirect to /driver dashboard
-```
+### **1. Simplified Architecture**
+- Single callback URL to maintain
+- Reduced code duplication
+- Easier debugging and troubleshooting
 
-### **Passenger OAuth Flow (Unchanged)**
-```
-1. User selects "Passenger" → No special role flag
-2. OAuth URL generated with: redirect_uri=http://localhost:3003/auth/callback
-3. MYJKKN processes standard OAuth request
-4. MYJKKN redirects to: http://localhost:3003/auth/callback?code=...
-5. Standard callback page processes authentication
-6. Success → Redirect to /dashboard
-```
+### **2. Improved User Experience**
+- Consistent authentication flow
+- Faster redirects (no intermediate redirects)
+- Better error handling
 
-## 🔍 **Benefits of Separate Callback URLs**
+### **3. Enhanced Maintainability**
+- Centralized authentication logic
+- Easier to add new user types
+- Simplified environment configuration
 
-### **1. Clear Differentiation**
-- MYJKKN can easily distinguish between passenger and driver OAuth requests
-- Different callback URLs provide clear context about the authentication type
+### **4. Backward Compatibility**
+- Existing OAuth flows continue to work
+- Gradual migration path
+- No breaking changes for users
 
-### **2. Specialized Processing**
-- Driver callback page is optimized specifically for driver authentication
-- Driver-specific error handling and recovery mechanisms
-- Tailored user interface and messaging
+## 🔄 **Migration Path**
 
-### **3. Better Debugging**
-- Separate logs for driver vs passenger OAuth flows
-- Easier to trace issues specific to driver authentication
-- Clear separation of concerns
+### **Phase 1: Implementation** ✅
+- Updated callback page to handle both roles
+- Modified parent auth service to use unified URL
+- Updated environment variables
 
-### **4. Enhanced Security**
-- Driver-specific validation and role checking
-- Isolated processing reduces cross-contamination of auth flows
-- Better audit trail for driver access
+### **Phase 2: Backward Compatibility** ✅
+- Created redirect mechanism for old driver callback
+- Preserved all existing functionality
+- Maintained role detection
 
-## 📋 **MYJKKN Configuration Required**
+### **Phase 3: Testing** 🔄
+- Test passenger OAuth flow
+- Test driver OAuth flow
+- Verify backward compatibility
+- Test error scenarios
 
-You need to add the new driver callback URL to your MYJKKN application settings:
+### **Phase 4: Cleanup** (Future)
+- Remove old driver callback page
+- Update documentation
+- Clean up unused environment variables
 
-### **Current Configuration**
-```
-Application ID: transport_management_system_menrm674
-Allowed Redirect URIs: 
-  - http://localhost:3003/auth/callback
-```
+## 📋 **Configuration**
 
-### **Updated Configuration Needed**
-```
-Application ID: transport_management_system_menrm674
-Allowed Redirect URIs: 
-  - http://localhost:3003/auth/callback          (for passengers)
-  - http://localhost:3003/auth/driver-callback   (for drivers)
-```
-
-## 🚀 **Testing the New Implementation**
-
-### **Step 1: Update MYJKKN Settings**
-1. Go to your MYJKKN application settings
-2. Add `http://localhost:3003/auth/driver-callback` to Allowed Redirect URIs
-3. Save the configuration
-
-### **Step 2: Test Driver OAuth**
-1. Clear browser data (to ensure clean state)
-2. Go to `http://localhost:3003/login`
-3. Select "Driver"
-4. Click "Sign in with MYJKKN"
-5. **Check console logs** - you should see:
-   ```
-   🔗 [PARENT AUTH] Redirect URI selection: {
-     userType: "driver",
-     selectedRedirectUri: "http://localhost:3003/auth/driver-callback",
-     isDriverCallback: true
-   }
-   ```
-6. Complete OAuth flow
-7. **Verify redirect** - should go to `http://localhost:3003/auth/driver-callback?code=...`
-8. **Check final redirect** - should end up at `/driver` dashboard
-
-### **Step 3: Test Passenger OAuth (Should Still Work)**
-1. Go to `http://localhost:3003/login`
-2. Select "Passenger"
-3. Click "Sign in with MYJKKN"
-4. **Verify redirect** - should go to `http://localhost:3003/auth/callback?code=...`
-5. **Check final redirect** - should end up at `/dashboard`
-
-## 🎉 **Expected Results**
-
-With the separate callback URLs:
-
-1. **Driver OAuth** should work more reliably with MYJKKN
-2. **Clear separation** between passenger and driver authentication flows
-3. **Better error handling** specific to driver authentication issues
-4. **Improved debugging** with driver-specific logs and processing
-
-The separate callback URL approach provides MYJKKN with clear context about the type of authentication being requested, which should resolve the redirect and processing issues you were experiencing with driver OAuth.
-
-## 🔧 **Production Deployment**
-
-For production, update the environment variables:
-
+### **Environment Variables**
 ```env
-# Production redirect URIs
+# Required
 NEXT_PUBLIC_REDIRECT_URI=https://your-domain.com/auth/callback
-NEXT_PUBLIC_DRIVER_REDIRECT_URI=https://your-domain.com/auth/driver-callback
+
+# Optional
+NEXT_PUBLIC_AUTH_DEBUG=true
 ```
 
-And add both URLs to your production MYJKKN application settings.
+### **Session Storage Keys**
+```javascript
+// Set during OAuth initiation
+sessionStorage.setItem('tms_oauth_role', 'driver'); // or 'passenger'
+
+// Used during callback processing
+const userType = sessionStorage.getItem('tms_oauth_role') || 'passenger';
+```
+
+## 🎯 **Usage Examples**
+
+### **Passenger OAuth**
+```javascript
+// Initiate passenger OAuth
+login(); // Uses default callback URL
+
+// Callback processing
+// - Detects no role flag (defaults to passenger)
+// - Redirects to /dashboard
+```
+
+### **Driver OAuth**
+```javascript
+// Initiate driver OAuth
+sessionStorage.setItem('tms_oauth_role', 'driver');
+loginDriverOAuth();
+
+// Callback processing
+// - Detects driver role flag
+// - Redirects to /driver
+```
+
+## ✅ **Status**
+
+- [x] Unified callback implementation
+- [x] Role detection and routing
+- [x] Backward compatibility
+- [x] Environment configuration
+- [x] Documentation updates
+- [ ] Testing and validation
+- [ ] Production deployment

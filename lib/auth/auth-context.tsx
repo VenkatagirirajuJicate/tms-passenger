@@ -735,6 +735,7 @@ export function AuthProvider({
 
         const newSession = parentAuthService.getSession();
         setSession(newSession);
+        setUserType('passenger'); // Ensure passenger user type is set
         return true;
       }
       return false;
