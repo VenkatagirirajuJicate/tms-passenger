@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Callback URL Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            background: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .button.driver {
+            background: #28a745;
+        }
+        .button.passenger {
+            background: #007bff;
+        }
+        .button:hover {
+            opacity: 0.9;
+        }
+        .info {
+            background: #e7f3ff;
+            border: 1px solid #b3d7ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 6px;
+            margin: 15px 0;
+        }
+        .code {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 15px;
+            border-left: 4px solid #007bff;
+            background: #f8f9fa;
+        }
+        .logs {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Driver Callback URL Test</h1>
+            <p>Test the new driver-specific OAuth callback URL implementation</p>
+        </div>
+
+        <div class="warning">
+            <h3>⚠️ Before Testing</h3>
+            <p><strong>You must add the driver callback URL to MYJKKN settings first:</strong></p>
+            <div class="code">
+                Allowed Redirect URIs:
+                - http://localhost:3003/auth/callback
+                - http://localhost:3003/auth/driver-callback  ← ADD THIS
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test 1: Check Environment Variables</h3>
+            <button class="button" onclick="checkEnvVars()">Check Environment Variables</button>
+            <div id="envResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test 2: Simulate OAuth URL Generation</h3>
+            <button class="button driver" onclick="testDriverOAuthURL()">Generate Driver OAuth URL</button>
+            <button class="button passenger" onclick="testPassengerOAuthURL()">Generate Passenger OAuth URL</button>
+            <div id="oauthResult"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Test 3: Test Actual OAuth Flow</h3>
+            <div class="info">
+                <p><strong>Instructions:</strong></p>
+                <ol>
+                    <li>Click "Test Driver OAuth" below</li>
+                    <li>Check console logs for redirect URI selection</li>
+                    <li>Complete the OAuth flow</li>
+                    <li>Verify you end up at the driver callback URL</li>
+                </ol>
+            </div>
+            <button class="button driver" onclick="testDriverOAuth()">Test Driver OAuth</button>
+            <button class="button passenger" onclick="testPassengerOAuth()">Test Passenger OAuth</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Console Logs</h3>
+            <p>Watch for these log messages:</p>
+            <div class="code">
+🔗 [PARENT AUTH] Redirect URI selection: {
+  userType: "driver",
+  selectedRedirectUri: "http://localhost:3003/auth/driver-callback",
+  isDriverCallback: true
+}
+
+🚗 [DRIVER CALLBACK] Step 10: Driver OAuth callback page loaded
+            </div>
+            <button class="button" onclick="clearLogs()">Clear Console</button>
+        </div>
+
+        <div class="success">
+            <h3>✅ Success Indicators</h3>
+            <ul>
+                <li><strong>Driver OAuth</strong>: Should redirect to <code>/auth/driver-callback</code></li>
+                <li><strong>Passenger OAuth</strong>: Should redirect to <code>/auth/callback</code></li>
+                <li><strong>Final Redirect</strong>: Driver → <code>/driver</code>, Passenger → <code>/dashboard</code></li>
+                <li><strong>Console Logs</strong>: Should show driver-specific logs with 🚗 prefix</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkEnvVars() {
+            const result = document.getElementById('envResult');
+            
+            // Simulate environment variable check
+            const driverCallbackUrl = 'http://localhost:3003/auth/driver-callback';
+            const passengerCallbackUrl = 'http://localhost:3003/auth/callback';
+            
+            result.innerHTML = `
+                <div class="success">
+                    <h4>Environment Variables:</h4>
+                    <div class="code">
+                        NEXT_PUBLIC_REDIRECT_URI: ${passengerCallbackUrl}<br>
+                        NEXT_PUBLIC_DRIVER_REDIRECT_URI: ${driverCallbackUrl}
+                    </div>
+                    <p>✅ Both callback URLs are configured correctly!</p>
+                </div>
+            `;
+        }
+
+        function testDriverOAuthURL() {
+            // Simulate driver OAuth URL generation
+            sessionStorage.setItem('tms_oauth_role', 'driver');
+            
+            const baseUrl = 'https://my.jkkn.ac.in/api/auth/child-app/authorize';
+            const params = new URLSearchParams({
+                response_type: 'code',
+                client_id: 'transport_management_system_menrm674',
+                app_id: 'transport_management_system_menrm674',
+                redirect_uri: 'http://localhost:3003/auth/driver-callback',
+                scope: 'read write profile',
+                user_type: 'driver',
+                oauth_role: 'driver',
+                state: 'test_state_' + Date.now(),
+                api_key: 'app_e20655605d48ebce_cfa1ffe34268949a'
+            });
+            
+            const fullUrl = `${baseUrl}?${params.toString()}`;
+            
+            document.getElementById('oauthResult').innerHTML = `
+                <div class="success">
+                    <h4>🚗 Driver OAuth URL Generated:</h4>
+                    <div class="code" style="word-break: break-all;">
+                        ${fullUrl}
+                    </div>
+                    <p>✅ Notice the <strong>redirect_uri=http://localhost:3003/auth/driver-callback</strong></p>
+                    <p>✅ Also includes <strong>user_type=driver</strong> and <strong>oauth_role=driver</strong></p>
+                </div>
+            `;
+        }
+
+        function testPassengerOAuthURL() {
+            // Simulate passenger OAuth URL generation
+            sessionStorage.removeItem('tms_oauth_role');
+            
+            const baseUrl = 'https://my.jkkn.ac.in/api/auth/child-app/authorize';
+            const params = new URLSearchParams({
+                response_type: 'code',
+                client_id: 'transport_management_system_menrm674',
+                app_id: 'transport_management_system_menrm674',
+                redirect_uri: 'http://localhost:3003/auth/callback',
+                scope: 'read write profile',
+                user_type: 'passenger',
+                oauth_role: 'passenger',
+                state: 'test_state_' + Date.now(),
+                api_key: 'app_e20655605d48ebce_cfa1ffe34268949a'
+            });
+            
+            const fullUrl = `${baseUrl}?${params.toString()}`;
+            
+            document.getElementById('oauthResult').innerHTML = `
+                <div class="info">
+                    <h4>👥 Passenger OAuth URL Generated:</h4>
+                    <div class="code" style="word-break: break-all;">
+                        ${fullUrl}
+                    </div>
+                    <p>✅ Notice the <strong>redirect_uri=http://localhost:3003/auth/callback</strong></p>
+                    <p>✅ Also includes <strong>user_type=passenger</strong> and <strong>oauth_role=passenger</strong></p>
+                </div>
+            `;
+        }
+
+        function testDriverOAuth() {
+            console.log('🚗 Starting driver OAuth test...');
+            sessionStorage.setItem('tms_oauth_role', 'driver');
+            
+            // Redirect to login page with driver selection
+            window.location.href = 'http://localhost:3003/login';
+        }
+
+        function testPassengerOAuth() {
+            console.log('👥 Starting passenger OAuth test...');
+            sessionStorage.removeItem('tms_oauth_role');
+            
+            // Redirect to login page
+            window.location.href = 'http://localhost:3003/login';
+        }
+
+        function clearLogs() {
+            console.clear();
+            console.log('🧹 Console cleared - ready for new tests');
+        }
+
+        // Auto-check environment variables on load
+        window.onload = function() {
+            checkEnvVars();
+            console.log('🧪 Driver Callback URL Test Page Loaded');
+            console.log('📋 Instructions:');
+            console.log('1. First add http://localhost:3003/auth/driver-callback to MYJKKN settings');
+            console.log('2. Test the OAuth URL generation');
+            console.log('3. Test the actual OAuth flow');
+            console.log('4. Watch for driver-specific logs with 🚗 prefix');
+        };
+    </script>
+</body>
+</html>

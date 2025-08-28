@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
 // GET - Get live tracking information for student's route
 export async function GET(request: NextRequest) {
   try {
+    // Create Supabase client - try service role first, fallback to anon key
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || (!supabaseServiceKey && !supabaseAnonKey)) {
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    // Use service role key if available, otherwise use anon key
+    const supabaseKey = supabaseServiceKey || supabaseAnonKey;
+    const keyType = supabaseServiceKey ? 'service_role' : 'anon';
+    
+    console.log(`🔑 Using Supabase key type: ${keyType} for live tracking`);
+    
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get('student_id');
     const routeId = searchParams.get('route_id');

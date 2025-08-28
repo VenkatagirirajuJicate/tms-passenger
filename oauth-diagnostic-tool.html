@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Diagnostic Tool - TMS</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 3px solid #2563eb;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: #f9fafb;
+        }
+        .test-section h3 {
+            color: #374151;
+            margin-top: 0;
+        }
+        .status {
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+        .status.success { background: #d1fae5; color: #065f46; }
+        .status.error { background: #fee2e2; color: #991b1b; }
+        .status.warning { background: #fef3c7; color: #92400e; }
+        .status.info { background: #dbeafe; color: #1e40af; }
+        button {
+            background: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #1d4ed8;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .config-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .config-table th, .config-table td {
+            border: 1px solid #d1d5db;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .config-table th {
+            background: #f3f4f6;
+            font-weight: bold;
+        }
+        .log-output {
+            background: #000;
+            color: #00ff00;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            height: 200px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 OAuth Diagnostic Tool - TMS Authentication</h1>
+        
+        <div class="test-section">
+            <h3>📋 Current Configuration</h3>
+            <table class="config-table">
+                <tr><th>Parameter</th><th>Value</th><th>Status</th></tr>
+                <tr><td>Parent App URL</td><td id="parent-url">-</td><td id="parent-url-status">-</td></tr>
+                <tr><td>Application ID</td><td id="app-id">-</td><td id="app-id-status">-</td></tr>
+                <tr><td>API Key</td><td id="api-key">-</td><td id="api-key-status">-</td></tr>
+                <tr><td>Redirect URI</td><td id="redirect-uri">-</td><td id="redirect-uri-status">-</td></tr>
+            </table>
+            <button onclick="loadConfiguration()">🔄 Load Configuration</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🌐 Network Connectivity Tests</h3>
+            <div id="connectivity-results"></div>
+            <button onclick="testConnectivity()">🚀 Test Parent App Connection</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔗 OAuth Authorization URL Test</h3>
+            <div id="auth-url-results"></div>
+            <button onclick="testAuthUrl()">🔗 Generate & Test Auth URL</button>
+            <button onclick="testAuthUrlManually()" id="manual-test-btn" disabled>🌐 Test Manually (Opens New Tab)</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔍 Endpoint Discovery</h3>
+            <div id="endpoint-results"></div>
+            <button onclick="discoverEndpoints()">🔍 Discover Available Endpoints</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Live OAuth Flow Test</h3>
+            <div id="oauth-flow-results"></div>
+            <button onclick="startOAuthFlow()">🚀 Start OAuth Flow</button>
+            <button onclick="simulateCallback()">🔄 Simulate Callback</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Diagnostic Log</h3>
+            <div class="log-output" id="diagnostic-log"></div>
+            <button onclick="clearLog()">🗑️ Clear Log</button>
+            <button onclick="exportLog()">💾 Export Log</button>
+        </div>
+    </div>
+
+    <script>
+        const config = {
+            parentAppUrl: 'https://my.jkkn.ac.in',
+            appId: 'transport_management_system_menrm674',
+            apiKey: 'app_e20655605d48ebce_cfa1ffe34268949a',
+            redirectUri: 'http://localhost:3003/auth/callback'
+        };
+
+        let generatedAuthUrl = '';
+
+        function log(message, type = 'info') {
+            const logElement = document.getElementById('diagnostic-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${message}\n`;
+            logElement.textContent += logEntry;
+            logElement.scrollTop = logElement.scrollHeight;
+            
+            console.log(`[OAuth Diagnostic] ${message}`);
+        }
+
+        function setStatus(elementId, status, message) {
+            const element = document.getElementById(elementId);
+            element.className = `status ${status}`;
+            element.textContent = message;
+        }
+
+        function loadConfiguration() {
+            log('🔄 Loading OAuth configuration...');
+            
+            document.getElementById('parent-url').textContent = config.parentAppUrl;
+            document.getElementById('app-id').textContent = config.appId;
+            document.getElementById('api-key').textContent = config.apiKey.substring(0, 20) + '...';
+            document.getElementById('redirect-uri').textContent = config.redirectUri;
+
+            // Validate configuration
+            setStatus('parent-url-status', 'success', '✅ Valid');
+            setStatus('app-id-status', config.appId.includes('transport_management_system') ? 'success' : 'error', 
+                     config.appId.includes('transport_management_system') ? '✅ Matches Dashboard' : '❌ Mismatch');
+            setStatus('api-key-status', config.apiKey.startsWith('app_') ? 'success' : 'error',
+                     config.apiKey.startsWith('app_') ? '✅ Valid Format' : '❌ Invalid Format');
+            setStatus('redirect-uri-status', config.redirectUri.includes('localhost:3003') ? 'success' : 'warning',
+                     config.redirectUri.includes('localhost:3003') ? '✅ Development' : '⚠️ Production');
+
+            log('✅ Configuration loaded successfully');
+        }
+
+        async function testConnectivity() {
+            log('🌐 Testing connectivity to parent app...');
+            const resultsDiv = document.getElementById('connectivity-results');
+            resultsDiv.innerHTML = '<div class="status info">🔄 Testing connection...</div>';
+
+            try {
+                // Test basic connectivity
+                const response = await fetch(config.parentAppUrl, { 
+                    method: 'HEAD',
+                    mode: 'no-cors'
+                });
+                
+                resultsDiv.innerHTML = '<div class="status success">✅ Parent app is reachable</div>';
+                log('✅ Parent app connectivity: SUCCESS');
+                
+                // Test API endpoint
+                try {
+                    const apiResponse = await fetch(`${config.parentAppUrl}/api/health`, {
+                        method: 'GET',
+                        headers: {
+                            'X-API-Key': config.apiKey,
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (apiResponse.ok) {
+                        resultsDiv.innerHTML += '<div class="status success">✅ API endpoint accessible</div>';
+                        log('✅ API endpoint: ACCESSIBLE');
+                    } else {
+                        resultsDiv.innerHTML += '<div class="status warning">⚠️ API endpoint returned: ' + apiResponse.status + '</div>';
+                        log(`⚠️ API endpoint: ${apiResponse.status} ${apiResponse.statusText}`);
+                    }
+                } catch (apiError) {
+                    resultsDiv.innerHTML += '<div class="status warning">⚠️ API endpoint test failed (CORS expected)</div>';
+                    log('⚠️ API endpoint test failed (CORS expected): ' + apiError.message);
+                }
+                
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="status error">❌ Connection failed: ' + error.message + '</div>';
+                log('❌ Connectivity test failed: ' + error.message);
+            }
+        }
+
+        function testAuthUrl() {
+            log('🔗 Generating OAuth authorization URL...');
+            const resultsDiv = document.getElementById('auth-url-results');
+            
+            try {
+                const state = 'test-' + Math.random().toString(36).substring(7);
+                const authUrl = new URL('/api/auth/child-app/authorize', config.parentAppUrl);
+                
+                authUrl.searchParams.append('response_type', 'code');
+                authUrl.searchParams.append('app_id', config.appId);
+                authUrl.searchParams.append('api_key', config.apiKey);
+                authUrl.searchParams.append('redirect_uri', config.redirectUri);
+                authUrl.searchParams.append('scope', 'read write profile');
+                authUrl.searchParams.append('state', state);
+
+                generatedAuthUrl = authUrl.toString();
+                
+                resultsDiv.innerHTML = `
+                    <div class="status success">✅ Authorization URL generated successfully</div>
+                    <div class="code-block">${generatedAuthUrl}</div>
+                    <div class="status info">💡 Parameters included: response_type, app_id, api_key, redirect_uri, scope, state</div>
+                `;
+                
+                document.getElementById('manual-test-btn').disabled = false;
+                log('✅ Authorization URL generated: ' + generatedAuthUrl.substring(0, 100) + '...');
+                
+            } catch (error) {
+                resultsDiv.innerHTML = '<div class="status error">❌ Failed to generate auth URL: ' + error.message + '</div>';
+                log('❌ Auth URL generation failed: ' + error.message);
+            }
+        }
+
+        function testAuthUrlManually() {
+            if (generatedAuthUrl) {
+                log('🌐 Opening authorization URL in new tab for manual testing...');
+                window.open(generatedAuthUrl, '_blank');
+                log('💡 Check the new tab for OAuth flow. Look for errors or successful redirect.');
+            }
+        }
+
+        async function discoverEndpoints() {
+            log('🔍 Discovering available OAuth endpoints...');
+            const resultsDiv = document.getElementById('endpoint-results');
+            resultsDiv.innerHTML = '<div class="status info">🔄 Testing endpoints...</div>';
+
+            const endpoints = [
+                '/api/auth/child-app/authorize',
+                '/auth/child-app/consent',
+                '/api/oauth/authorize',
+                '/oauth/authorize',
+                '/api/auth/child-app/token',
+                '/auth/child-app/token'
+            ];
+
+            let results = '<h4>Endpoint Test Results:</h4>';
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const testUrl = new URL(endpoint, config.parentAppUrl);
+                    const response = await fetch(testUrl.toString(), {
+                        method: 'HEAD',
+                        headers: {
+                            'X-API-Key': config.apiKey
+                        }
+                    });
+                    
+                    results += `<div class="status success">✅ ${endpoint} - Status: ${response.status}</div>`;
+                    log(`✅ Endpoint ${endpoint}: ${response.status}`);
+                    
+                } catch (error) {
+                    results += `<div class="status error">❌ ${endpoint} - Error: ${error.message}</div>`;
+                    log(`❌ Endpoint ${endpoint}: ${error.message}`);
+                }
+            }
+            
+            resultsDiv.innerHTML = results;
+            log('🔍 Endpoint discovery completed');
+        }
+
+        function startOAuthFlow() {
+            log('🚀 Starting OAuth flow test...');
+            const resultsDiv = document.getElementById('oauth-flow-results');
+            
+            // Generate auth URL
+            const state = 'flow-test-' + Date.now();
+            const authUrl = new URL('/api/auth/child-app/authorize', config.parentAppUrl);
+            
+            authUrl.searchParams.append('response_type', 'code');
+            authUrl.searchParams.append('app_id', config.appId);
+            authUrl.searchParams.append('api_key', config.apiKey);
+            authUrl.searchParams.append('redirect_uri', config.redirectUri);
+            authUrl.searchParams.append('scope', 'read write profile');
+            authUrl.searchParams.append('state', state);
+
+            // Store state for validation
+            sessionStorage.setItem('oauth_test_state', state);
+            
+            resultsDiv.innerHTML = `
+                <div class="status info">🚀 OAuth flow initiated</div>
+                <div class="status warning">⚠️ You will be redirected to the parent app</div>
+                <div class="code-block">State: ${state}</div>
+                <div class="status info">💡 After authentication, you'll be redirected back to /auth/callback</div>
+            `;
+            
+            log('🚀 OAuth flow starting with state: ' + state);
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = authUrl.toString();
+            }, 2000);
+        }
+
+        function simulateCallback() {
+            log('🔄 Simulating OAuth callback...');
+            const resultsDiv = document.getElementById('oauth-flow-results');
+            
+            // Simulate callback parameters
+            const mockCode = 'mock_auth_code_' + Math.random().toString(36).substring(7);
+            const mockState = sessionStorage.getItem('oauth_test_state') || 'test_state';
+            
+            const callbackUrl = `${config.redirectUri}?code=${mockCode}&state=${mockState}`;
+            
+            resultsDiv.innerHTML = `
+                <div class="status info">🔄 Simulating callback with mock data</div>
+                <div class="code-block">Callback URL: ${callbackUrl}</div>
+                <div class="status warning">⚠️ This is a simulation - real OAuth would provide actual tokens</div>
+            `;
+            
+            log('🔄 Simulated callback URL: ' + callbackUrl);
+        }
+
+        function clearLog() {
+            document.getElementById('diagnostic-log').textContent = '';
+            log('🗑️ Diagnostic log cleared');
+        }
+
+        function exportLog() {
+            const logContent = document.getElementById('diagnostic-log').textContent;
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `oauth-diagnostic-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            log('💾 Diagnostic log exported');
+        }
+
+        // Auto-load configuration on page load
+        window.onload = function() {
+            log('🔍 OAuth Diagnostic Tool initialized');
+            loadConfiguration();
+        };
+    </script>
+</body>
+</html>

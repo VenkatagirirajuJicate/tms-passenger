@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/lib/auth/auth-context";
+import AutoLoginWrapper from "@/components/auto-login-wrapper";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,12 +19,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/favicon.ico",
   },
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -37,36 +41,46 @@ export default function RootLayout({
       <body
         className={`${inter.variable} font-sans antialiased h-full bg-gray-50 overflow-x-hidden`}
       >
-        <div id="root" className="h-full overflow-x-hidden">
-          {children}
-        </div>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 4000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-              maxWidth: '90vw',
-              wordBreak: 'break-word',
-              zIndex: 9999,
-            },
-            success: {
-              duration: 3000,
-              iconTheme: {
-                primary: '#10b981',
-                secondary: '#fff',
-              },
-            },
-            error: {
-              duration: 5000,
-              iconTheme: {
-                primary: '#ef4444',
-                secondary: '#fff',
-              },
-            },
-          }}
-        />
+        <AuthProvider
+          autoValidate={true}
+          autoRefresh={true}
+          refreshInterval={10 * 60 * 1000} // 10 minutes
+        >
+          <ThemeProvider defaultTheme="system" storageKey="tms-passenger-theme">
+            <AutoLoginWrapper>
+              <div id="root" className="h-full overflow-x-hidden">
+                {children}
+              </div>
+            </AutoLoginWrapper>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#363636',
+                  color: '#fff',
+                  maxWidth: '90vw',
+                  wordBreak: 'break-word',
+                  zIndex: 9999,
+                },
+                success: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#10b981',
+                    secondary: '#fff',
+                  },
+                },
+                error: {
+                  duration: 5000,
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
+          </ThemeProvider>
+        </AuthProvider>
       </body>
     </html>
   );

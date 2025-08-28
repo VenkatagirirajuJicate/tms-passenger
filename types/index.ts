@@ -238,6 +238,39 @@ export interface Attendance {
   createdAt: Date;
 }
 
+// Analytics Types
+export interface ChartDataPoint {
+  label: string;
+  value: number;
+  color?: string;
+}
+
+export interface SpendingAnalyticsData {
+  monthlyData: ChartDataPoint[];
+  categoryData: ChartDataPoint[];
+  totalSpent: number;
+  averageMonthly: number;
+  trendData: ChartDataPoint[];
+}
+
+export interface PaymentHistoryEntry {
+  id: string;
+  date: string;
+  amount: number;
+  description: string;
+  status: 'success' | 'pending' | 'failed';
+  method: string;
+}
+
+export interface TripAnalyticsData {
+  monthlyTrips: ChartDataPoint[];
+  routeUsage: ChartDataPoint[];
+  totalTrips: number;
+  averageTripsPerMonth: number;
+  mostUsedRoute: string;
+  trendData: ChartDataPoint[];
+}
+
 // Dashboard Types
 export interface StudentDashboardData {
   profile: Student;
@@ -256,6 +289,11 @@ export interface StudentDashboardData {
     totalSpent: number;
     upcomingTrips: number;
     activeGrievances: number;
+  };
+  analytics?: {
+    spendingAnalytics: SpendingAnalyticsData;
+    tripAnalytics: TripAnalyticsData;
+    paymentHistory: PaymentHistoryEntry[];
   };
 }
 

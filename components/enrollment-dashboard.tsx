@@ -12,31 +12,34 @@ import {
   Loader2
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 
 interface Route {
   id: string;
-  route_number: string;
-  route_name: string;
-  start_location: string;
-  end_location: string;
-  departure_time: string;
-  arrival_time: string;
-  duration: string;
-  distance: number;
+  routeName: string;
+  routeCode: string;
+  startPoint: string;
+  endPoint: string;
+  distance: string;
+  estimatedTime: string;
   fare: number;
-  total_capacity: number;
-  current_passengers: number;
-  route_stops?: RouteStop[];
+  capacity: number;
+  availableSeats: number;
+  currentPassengers: number;
+  isActive: boolean;
+  stops?: RouteStop[];
+  schedule?: {
+    morning: string[];
+    evening: string[];
+  };
 }
 
 interface RouteStop {
   id: string;
-  route_id: string;
-  stop_name: string;
-  stop_time: string;
-  sequence_order: number;
-  is_major_stop: boolean;
+  name: string;
+  time: string;
+  sequence: number;
+  isMajor: boolean;
 }
 
 interface EnrollmentRequest {
@@ -60,6 +63,7 @@ interface EnrollmentDashboardProps {
 }
 
 export default function EnrollmentDashboard({ student }: EnrollmentDashboardProps) {
+  const { user, session } = useAuth();
   const [routes, setRoutes] = useState<Route[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [selectedStop, setSelectedStop] = useState<RouteStop | null>(null);
@@ -84,17 +88,43 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
         setRoutes(routesData.routes || []);
       }
 
-      // Check if student has existing enrollment request
-      const requestResponse = await fetch('/api/enrollment/status', {
-        headers: {
-          'Authorization': `Bearer ${sessionManager.getSession()?.session?.access_token}`,
-          'X-Student-ID': student.id
-        }
+      // Check if student has existing enrollment request - prioritize JWT sub field
+      const studentId = (user as any)?.sub || 
+                       (user as any)?.studentId || 
+                       student.id;
+      // Get the access token to include in the request
+      const accessToken = localStorage.getItem('tms_access_token') || 
+                         document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+        console.log('🔑 Including access token in enrollment dashboard request');
+      }
+
+      const requestResponse = await fetch(`/api/enrollment/status?studentId=${studentId}`, {
+        headers
       });
       
       if (requestResponse.ok) {
         const requestData = await requestResponse.json();
-        setEnrollmentRequest(requestData.request);
+        // The new API returns enrollment data, extract the latest request from history
+        const enrollmentData = requestData.enrollment;
+        if (enrollmentData?.history && enrollmentData.history.length > 0) {
+          const latestRequest = enrollmentData.history[0];
+          setEnrollmentRequest({
+            id: latestRequest.id,
+            request_status: latestRequest.status,
+            preferred_route_id: latestRequest.route || '',
+            preferred_stop_id: latestRequest.stop || '',
+            requested_at: latestRequest.date,
+            admin_notes: latestRequest.notes,
+            rejection_reason: latestRequest.rejection_reason
+          });
+        }
       }
     } catch (error) {
       console.error('Error fetching initial data:', error);
@@ -104,20 +134,10 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
     }
   };
 
-  const handleRouteSelect = async (route: Route) => {
+  const handleRouteSelect = (route: Route) => {
     setSelectedRoute(route);
     setSelectedStop(null);
-    
-    // Fetch route stops
-    try {
-      const response = await fetch(`/api/routes/${route.id}/stops`);
-      if (response.ok) {
-        const stopsData = await response.json();
-        setSelectedRoute({ ...route, route_stops: stopsData.stops });
-      }
-    } catch (error) {
-      console.error('Error fetching route stops:', error);
-    }
+    // Route already contains stops data from the API
   };
 
   const handleStopSelect = (stop: RouteStop) => {
@@ -132,13 +152,48 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
 
     setSubmitting(true);
     try {
+      // Use the enhanced studentId from user context - prioritize JWT sub field
+      const studentId = (user as any)?.sub || 
+                       (user as any)?.studentId || 
+                       student.id;
+      
+      // Enhanced debugging for student ID resolution
+      console.log('🔍 Student ID resolution debug:', {
+        finalStudentId: studentId,
+        userSub: (user as any)?.sub,
+        userStudentId: (user as any)?.studentId,
+        studentPropId: student.id,
+        userObject: user,
+        studentObject: student
+      });
+      
+      if (!studentId) {
+        console.error('❌ No student ID available for enrollment request');
+        toast.error('Unable to identify student. Please refresh the page and try again.');
+        return;
+      }
+      
+      console.log('🔍 Submitting enrollment with student ID:', studentId);
+      
+      // Get the access token to include in the request
+      const accessToken = localStorage.getItem('tms_access_token') || 
+                         document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1];
+
+      const requestHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Student-ID': studentId
+      };
+
+      if (accessToken) {
+        requestHeaders['Authorization'] = `Bearer ${accessToken}`;
+        console.log('🔑 Including access token in enrollment request submission');
+      } else {
+        console.log('⚠️ No access token found for enrollment request submission');
+      }
+      
       const response = await fetch('/api/enrollment/request', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionManager.getSession()?.session?.access_token}`,
-          'X-Student-ID': student.id
-        },
+        headers: requestHeaders,
         body: JSON.stringify({
           preferred_route_id: selectedRoute.id,
           preferred_stop_id: selectedStop.id,
@@ -149,14 +204,39 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
       const data = await response.json();
 
       if (response.ok) {
-        toast.success('Enrollment request submitted successfully!');
+        // Handle both real and mock responses
+        if (data.is_mock) {
+          toast.success('Enrollment request simulated successfully! (Demo mode - data not persisted)');
+        } else {
+          toast.success('Enrollment request submitted successfully!');
+        }
         setEnrollmentRequest(data.request);
         setShowEnrollmentForm(false);
         setSelectedRoute(null);
         setSelectedStop(null);
         setSpecialRequirements('');
       } else {
-        throw new Error(data.error || 'Failed to submit enrollment request');
+        // Enhanced error handling with more specific messages
+        const errorMessage = data.error || 'Failed to submit enrollment request';
+        console.error('❌ Enrollment request failed:', {
+          status: response.status,
+          error: errorMessage,
+          studentId,
+          selectedRoute: selectedRoute?.id,
+          selectedStop: selectedStop?.id
+        });
+        
+        if (response.status === 404 && errorMessage.includes('Student lookup failed')) {
+          throw new Error('Student account not found. Please contact support to verify your enrollment in the system.');
+        } else if (response.status === 404) {
+          throw new Error('Student not found. Please refresh the page and try again, or contact support if the issue persists.');
+        } else if (response.status === 400 && errorMessage.includes('already enrolled')) {
+          throw new Error('You are already enrolled for transport services.');
+        } else if (response.status === 400 && errorMessage.includes('pending enrollment request')) {
+          throw new Error('You already have a pending enrollment request.');
+        } else {
+          throw new Error(errorMessage);
+        }
       }
     } catch (error) {
       console.error('Error submitting enrollment:', error);
@@ -308,13 +388,13 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
             </div>
 
             {/* Stop Selection */}
-            {selectedRoute && selectedRoute.route_stops && (
+            {selectedRoute && selectedRoute.stops && (
               <div>
                 <h4 className="text-md font-medium text-gray-900 mb-4">
                   Step 2: Select Your Boarding Stop
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedRoute.route_stops.map((stop) => (
+                  {selectedRoute.stops.map((stop) => (
                     <StopCard
                       key={stop.id}
                       stop={stop}
@@ -380,7 +460,7 @@ function RouteCard({ route, isSelected, onClick }: {
   isSelected: boolean;
   onClick: () => void;
 }) {
-  const occupancyPercentage = (route.current_passengers / route.total_capacity) * 100;
+  const occupancyPercentage = ((route.capacity - route.availableSeats) / route.capacity) * 100;
   
   return (
     <div
@@ -392,27 +472,41 @@ function RouteCard({ route, isSelected, onClick }: {
       }`}
     >
       <div className="flex items-center justify-between mb-2">
-        <h5 className="font-medium text-gray-900">{route.route_number}</h5>
+        <h5 className="font-medium text-gray-900">{route.routeCode}</h5>
         <span className="text-sm text-gray-600">₹{route.fare}</span>
       </div>
       
-      <p className="text-sm text-gray-600 mb-3">{route.route_name}</p>
+      <p className="text-sm text-gray-600 mb-3">{route.routeName}</p>
       
       <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
         <div className="flex items-center">
           <MapPin className="w-3 h-3 mr-1" />
-          <span>{route.start_location}</span>
+          <span>{route.startPoint}</span>
         </div>
         <div className="flex items-center">
           <Clock className="w-3 h-3 mr-1" />
-          <span>{route.departure_time}</span>
+          <span>{route.schedule?.morning?.[0] || 'N/A'}</span>
         </div>
+      </div>
+      
+      <div className="space-y-2 mb-3">
+        <div className="flex items-center text-xs text-gray-500">
+          <span>📍 {route.startPoint} → {route.endPoint}</span>
+        </div>
+        <div className="flex items-center text-xs text-gray-500">
+          <span>🕒 {route.estimatedTime} • {route.distance}</span>
+        </div>
+        {route.stops && route.stops.length > 0 && (
+          <div className="flex items-center text-xs text-gray-500">
+            <span>🚏 {route.stops.length} stops</span>
+          </div>
+        )}
       </div>
       
       <div className="flex items-center justify-between">
         <div className="flex items-center text-xs text-gray-500">
           <Users className="w-3 h-3 mr-1" />
-          <span>{route.current_passengers}/{route.total_capacity}</span>
+          <span>{route.capacity - route.availableSeats}/{route.capacity}</span>
         </div>
         <div className="w-16 bg-gray-200 rounded-full h-2">
           <div 
@@ -446,18 +540,21 @@ function StopCard({ stop, isSelected, onClick }: {
       <div className="flex items-center justify-between">
         <div className="flex items-center">
           <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="font-medium text-gray-900">{stop.stop_name}</span>
+          <span className="font-medium text-gray-900">{stop.name}</span>
         </div>
         <div className="flex items-center text-sm text-gray-500">
           <Clock className="w-3 h-3 mr-1" />
-          <span>{stop.stop_time}</span>
+          <span>{stop.time}</span>
         </div>
       </div>
-      {stop.is_major_stop && (
+      {stop.isMajor && (
         <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
           Major Stop
         </span>
       )}
+      <div className="mt-1 text-xs text-gray-400">
+        Stop #{stop.sequence}
+      </div>
     </div>
   );
 } 

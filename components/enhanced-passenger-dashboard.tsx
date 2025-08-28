@@ -44,6 +44,7 @@ import {
 import Link from 'next/link';
 import { StudentDashboardData } from '@/types';
 import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
+import { SpendingAnalytics, PaymentTimeline } from '@/components/data-visualization';
 
 interface EnhancedPassengerDashboardProps {
   data: StudentDashboardData;
@@ -239,6 +240,7 @@ export default function EnhancedPassengerDashboard({
 }: EnhancedPassengerDashboardProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(true);
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -555,6 +557,103 @@ export default function EnhancedPassengerDashboard({
           </motion.div>
         </div>
       </div>
+
+      {/* Show Analytics Button (when hidden) */}
+      {data.analytics && !showAnalytics && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="text-center"
+        >
+          <button
+            onClick={() => setShowAnalytics(true)}
+            className="btn-secondary flex items-center space-x-2 mx-auto"
+          >
+            <BarChart3 className="w-5 h-5" />
+            <span>Show Analytics & Insights</span>
+          </button>
+        </motion.div>
+      )}
+
+      {/* Analytics Section */}
+      {data.analytics && showAnalytics && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="space-y-8"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-heading-2">Analytics & Insights</h2>
+            <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setShowAnalytics(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                title="Hide Analytics"
+              >
+                <Eye className="w-5 h-5" />
+              </button>
+              <BarChart3 className="w-6 h-6 text-gray-400" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Spending Analytics */}
+            <SpendingAnalytics
+              monthlyData={data.analytics.spendingAnalytics.monthlyData}
+              categoryData={data.analytics.spendingAnalytics.categoryData}
+              totalSpent={data.analytics.spendingAnalytics.totalSpent}
+              averageMonthly={data.analytics.spendingAnalytics.averageMonthly}
+              className="h-fit"
+            />
+
+            {/* Payment Timeline */}
+            <PaymentTimeline
+              payments={data.analytics.paymentHistory}
+              className="h-fit"
+            />
+          </div>
+
+          {/* Trip Analytics */}
+          {data.analytics.tripAnalytics.totalTrips > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.0 }}
+              className="modern-card p-6"
+            >
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-heading-3">Trip Analytics</h3>
+                <Route className="w-5 h-5 text-gray-400" />
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="text-center p-4 bg-blue-50 rounded-xl">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {data.analytics.tripAnalytics.totalTrips}
+                  </div>
+                  <div className="text-sm text-blue-700">Total Trips</div>
+                </div>
+                
+                <div className="text-center p-4 bg-purple-50 rounded-xl">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {Math.round(data.analytics.tripAnalytics.averageTripsPerMonth)}
+                  </div>
+                  <div className="text-sm text-purple-700">Avg Monthly</div>
+                </div>
+                
+                <div className="text-center p-4 bg-green-50 rounded-xl">
+                  <div className="text-lg font-bold text-green-600 truncate">
+                    {data.analytics.tripAnalytics.mostUsedRoute}
+                  </div>
+                  <div className="text-sm text-green-700">Most Used Route</div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      )}
 
       {/* Live Bus Tracking Modal */}
       <LiveBusTrackingModal 

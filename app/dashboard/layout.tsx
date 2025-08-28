@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import React, { useState, useMemo } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Home, 
@@ -20,100 +20,117 @@ import {
   Navigation
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { sessionManager } from '@/lib/session';
-import { Student } from '@/types';
+import { useAuth } from '@/lib/auth/auth-context';
+import { RequireAuth } from '@/components/protected-route';
 import NotificationCenter from '@/components/notification-center';
+import { ThemeToggle } from '@/components/modern-ui-components';
+import { useTheme } from '@/components/theme-provider';
+import { EnrollmentProvider, useEnrollmentStatus } from '@/lib/enrollment/enrollment-context';
 
 interface NavigationItem {
   name: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
   current: boolean;
+  requiresEnrollment?: boolean;
+  disabled?: boolean;
 }
 
-export default function DashboardLayout({
+function DashboardContent({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [student, setStudent] = useState<Student | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { user, logout } = useAuth();
+  const { theme, setTheme, actualTheme } = useTheme();
+  const enrollmentStatus = useEnrollmentStatus();
 
   // Memoize navigation items to prevent unnecessary re-renders
-  const navigation: NavigationItem[] = useMemo(() => [
-    { name: 'Dashboard', href: '/dashboard', icon: Home, current: pathname === '/dashboard' },
-    { name: 'My Routes', href: '/dashboard/routes', icon: MapPin, current: pathname === '/dashboard/routes' },
-    { name: 'Live Track', href: '/dashboard/live-track', icon: Navigation, current: pathname === '/dashboard/live-track' },
-    { name: 'Schedules', href: '/dashboard/schedules', icon: Calendar, current: pathname === '/dashboard/schedules' },
-    { name: 'Payments', href: '/dashboard/payments', icon: CreditCard, current: pathname === '/dashboard/payments' },
-    { name: 'Grievances', href: '/dashboard/grievances', icon: MessageSquare, current: pathname === '/dashboard/grievances' },
-    { name: 'Notifications', href: '/dashboard/notifications', icon: Bell, current: pathname === '/dashboard/notifications' },
-    { name: 'Location', href: '/dashboard/location', icon: MapPin, current: pathname === '/dashboard/location' },
-    { name: 'Profile', href: '/dashboard/profile', icon: User, current: pathname === '/dashboard/profile' },
-  ], [pathname]);
-
-  const studentId = student?.id;
-
-  useEffect(() => {
-    checkSession();
-  }, []);
-
-  const checkSession = async () => {
-    try {
-      const session = sessionManager.getSession();
-      if (!session) {
-        router.push('/login');
-        return;
-      }
-
-      const currentStudent = sessionManager.getCurrentStudent();
-      if (currentStudent) {
-        setStudent({
-          id: currentStudent.student_id,
-          studentName: currentStudent.student_name,
-          rollNumber: currentStudent.roll_number,
-          email: session.user?.email || '',
-          mobile: '',
-          firstLoginCompleted: true,
-          profileCompletionPercentage: 0,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        } as Student);
-      } else {
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Session check failed:', error);
-      router.push('/login');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const navigation: NavigationItem[] = useMemo(() => {
+    const isEnrolled = enrollmentStatus?.isEnrolled || false;
+    
+    return [
+      { 
+        name: 'Dashboard', 
+        href: '/dashboard', 
+        icon: Home, 
+        current: pathname === '/dashboard',
+        requiresEnrollment: false 
+      },
+      { 
+        name: 'My Routes', 
+        href: '/dashboard/routes', 
+        icon: MapPin, 
+        current: pathname === '/dashboard/routes',
+        requiresEnrollment: true,
+        disabled: !isEnrolled
+      },
+      { 
+        name: 'Live Track', 
+        href: '/dashboard/live-track', 
+        icon: Navigation, 
+        current: pathname === '/dashboard/live-track',
+        requiresEnrollment: true,
+        disabled: !isEnrolled
+      },
+      { 
+        name: 'Schedules', 
+        href: '/dashboard/schedules', 
+        icon: Calendar, 
+        current: pathname === '/dashboard/schedules',
+        requiresEnrollment: true,
+        disabled: !isEnrolled
+      },
+      { 
+        name: 'Payments', 
+        href: '/dashboard/payments', 
+        icon: CreditCard, 
+        current: pathname === '/dashboard/payments',
+        requiresEnrollment: false // Always accessible for enrollment payments
+      },
+      { 
+        name: 'Grievances', 
+        href: '/dashboard/grievances', 
+        icon: MessageSquare, 
+        current: pathname === '/dashboard/grievances',
+        requiresEnrollment: false // Always accessible for enrollment-related grievances
+      },
+      { 
+        name: 'Notifications', 
+        href: '/dashboard/notifications', 
+        icon: Bell, 
+        current: pathname === '/dashboard/notifications',
+        requiresEnrollment: false // Always accessible
+      },
+      { 
+        name: 'Location', 
+        href: '/dashboard/location', 
+        icon: MapPin, 
+        current: pathname === '/dashboard/location',
+        requiresEnrollment: true,
+        disabled: !isEnrolled
+      },
+      { 
+        name: 'Profile', 
+        href: '/dashboard/profile', 
+        icon: User, 
+        current: pathname === '/dashboard/profile',
+        requiresEnrollment: false // Always accessible
+      },
+    ];
+  }, [pathname, enrollmentStatus]);
 
   const handleLogout = async () => {
     try {
-      sessionManager.clearSession();
+      await logout();
       toast.success('Logged out successfully');
-      router.push('/login');
     } catch (error) {
       console.error('Logout failed:', error);
       toast.error('Failed to logout');
     }
   };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600 font-medium">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="h-screen bg-gray-50 overflow-hidden flex">
@@ -153,17 +170,39 @@ export default function DashboardLayout({
           <nav className="flex-1 px-6 py-8 space-y-2 overflow-y-auto">
             <div className="mb-8">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">MENU</p>
-              {navigation.map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`sidebar-nav-item ${item.current ? 'active' : ''} mb-1`}
-                >
-                  <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              ))}
+              {navigation.map((item) => {
+                const isDisabled = item.disabled;
+                const baseClasses = `sidebar-nav-item ${item.current ? 'active' : ''} mb-1`;
+                const disabledClasses = isDisabled 
+                  ? 'opacity-50 cursor-not-allowed pointer-events-none' 
+                  : '';
+                
+                if (isDisabled) {
+                  return (
+                    <div
+                      key={item.name}
+                      className={`${baseClasses} ${disabledClasses}`}
+                      title={`${item.name} - Available after enrollment`}
+                    >
+                      <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                      <span className="font-medium">{item.name}</span>
+                      <span className="ml-auto text-xs text-gray-400">🔒</span>
+                    </div>
+                  );
+                }
+                
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setSidebarOpen(false)}
+                    className={baseClasses}
+                  >
+                    <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                    <span className="font-medium">{item.name}</span>
+                  </Link>
+                );
+              })}
             </div>
 
             <div>
@@ -184,17 +223,17 @@ export default function DashboardLayout({
               <div className="relative">
                 <div className="h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
                   <span className="text-sm font-bold text-white">
-                    {student?.studentName?.charAt(0).toUpperCase()}
+                    {user?.full_name?.charAt(0).toUpperCase()}
                   </span>
                 </div>
                 <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
-                  {student?.studentName}
+                  {user?.full_name}
                 </p>
                 <p className="text-xs text-gray-500 truncate">
-                  {student?.email || 'student@email.com'}
+                  {user?.email || 'student@email.com'}
                 </p>
               </div>
             </div>
@@ -228,16 +267,38 @@ export default function DashboardLayout({
         <nav className="flex-1 px-6 py-8 space-y-2 overflow-y-auto">
           <div className="mb-8">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">MENU</p>
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`sidebar-nav-item ${item.current ? 'active' : ''} mb-1`}
-              >
-                <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
-                <span className="font-medium">{item.name}</span>
-              </Link>
-            ))}
+            {navigation.map((item) => {
+              const isDisabled = item.disabled;
+              const baseClasses = `sidebar-nav-item ${item.current ? 'active' : ''} mb-1`;
+              const disabledClasses = isDisabled 
+                ? 'opacity-50 cursor-not-allowed pointer-events-none' 
+                : '';
+              
+              if (isDisabled) {
+                return (
+                  <div
+                    key={item.name}
+                    className={`${baseClasses} ${disabledClasses}`}
+                    title={`${item.name} - Available after enrollment`}
+                  >
+                    <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                    <span className="font-medium">{item.name}</span>
+                    <span className="ml-auto text-xs text-gray-400">🔒</span>
+                  </div>
+                );
+              }
+              
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={baseClasses}
+                >
+                  <item.icon className="h-5 w-5 mr-3 flex-shrink-0" />
+                  <span className="font-medium">{item.name}</span>
+                </Link>
+              );
+            })}
           </div>
 
           <div>
@@ -258,7 +319,7 @@ export default function DashboardLayout({
             <div className="relative">
               <img
                 src="/api/placeholder/40/40"
-                alt={student?.studentName}
+                alt={user?.full_name}
                 className="h-10 w-10 rounded-full object-cover"
                 onError={(e) => {
                   const target = e.target as HTMLImageElement;
@@ -268,17 +329,17 @@ export default function DashboardLayout({
               />
               <div className="hidden h-10 w-10 rounded-full bg-green-600 flex items-center justify-center">
                 <span className="text-sm font-bold text-white">
-                  {student?.studentName?.charAt(0).toUpperCase()}
+                  {user?.full_name?.charAt(0).toUpperCase()}
                 </span>
               </div>
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white"></div>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-900 truncate">
-                {student?.studentName || 'Student'}
+                {user?.full_name || 'Student'}
               </p>
               <p className="text-xs text-gray-500 truncate">
-                {student?.email || 'student@email.com'}
+                {user?.email || 'student@email.com'}
               </p>
             </div>
           </div>
@@ -328,10 +389,17 @@ export default function DashboardLayout({
           </div>
 
           <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Theme Toggle */}
+            <ThemeToggle
+              isDark={actualTheme === 'dark'}
+              onToggle={(isDark) => setTheme(isDark ? 'dark' : 'light')}
+              className="hidden sm:block"
+            />
+            
             {/* Notification Center */}
-            {studentId && (
+            {user?.id && (
               <NotificationCenter 
-                userId={studentId} 
+                userId={user.id} 
                 userType="student" 
                 className="mr-1"
               />
@@ -340,7 +408,7 @@ export default function DashboardLayout({
             <div className="relative">
               <div className="h-8 w-8 rounded-full bg-green-600 flex items-center justify-center cursor-pointer hover:bg-green-700 transition-colors">
                 <span className="text-xs font-bold text-white">
-                  {student?.studentName?.charAt(0).toUpperCase() || 'S'}
+                  {user?.full_name?.charAt(0).toUpperCase() || 'S'}
                 </span>
               </div>
             </div>
@@ -355,5 +423,19 @@ export default function DashboardLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <RequireAuth>
+      <EnrollmentProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </EnrollmentProvider>
+    </RequireAuth>
   );
 } 

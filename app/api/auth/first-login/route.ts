@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 DOB Authentication: Fetching from external API...');
     const apiKey = 'jk_5483dc7eb7f1b7cd730a274ec61765cc_mcka9lzk';
     
-    const externalResponse = await fetch('https://myadmin.jkkn.ac.in/api/api-management/students?limit=10000', {
+    const externalResponse = await fetch('https://my.jkkn.ac.in/api/api-management/students?limit=10000', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

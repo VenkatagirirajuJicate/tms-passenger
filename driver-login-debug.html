@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Login Debug - Step-by-Step Logging</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0f172a;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #10b981;
+        }
+        .log-section {
+            background: #1e293b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3b82f6;
+        }
+        .step {
+            background: #334155;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #64748b;
+        }
+        .step.active { border-left-color: #f59e0b; background: #422006; }
+        .step.completed { border-left-color: #10b981; background: #064e3b; }
+        .step.error { border-left-color: #ef4444; background: #450a0a; }
+        .log-output {
+            background: #000;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            height: 400px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #374151;
+        }
+        .button {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+            font-family: inherit;
+        }
+        .button:hover { background: #059669; }
+        .button.secondary { background: #6b7280; }
+        .button.secondary:hover { background: #4b5563; }
+        .button.danger { background: #ef4444; }
+        .button.danger:hover { background: #dc2626; }
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        .status-pending { background: #64748b; }
+        .status-active { background: #f59e0b; animation: pulse 1s infinite; }
+        .status-completed { background: #10b981; }
+        .status-error { background: #ef4444; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .code { background: #374151; padding: 8px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚗 Driver Login Debug Console</h1>
+            <p>Real-time step-by-step logging for driver OAuth authentication</p>
+            <div>
+                <button class="button" onclick="startDriverLogin()">🚀 Start Driver Login</button>
+                <button class="button secondary" onclick="clearLogs()">🗑️ Clear Logs</button>
+                <button class="button secondary" onclick="exportLogs()">💾 Export Logs</button>
+                <button class="button danger" onclick="resetTest()">🔄 Reset Test</button>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h2>📋 Expected Login Flow Steps</h2>
+            <div class="step" id="step1">
+                <span class="status-indicator status-pending" id="status1"></span>
+                <strong>Step 1-3:</strong> Driver OAuth Initiation (Unified Auth Service)
+            </div>
+            <div class="step" id="step4">
+                <span class="status-indicator status-pending" id="status4"></span>
+                <strong>Step 4-9:</strong> OAuth URL Generation (Parent Auth Service)
+            </div>
+            <div class="step" id="step10">
+                <span class="status-indicator status-pending" id="status10"></span>
+                <strong>Step 10-13:</strong> Callback Processing (Callback Page)
+            </div>
+            <div class="step" id="step14">
+                <span class="status-indicator status-pending" id="status14"></span>
+                <strong>Step 14-16:</strong> Token Exchange (API Call)
+            </div>
+            <div class="step" id="step17">
+                <span class="status-indicator status-pending" id="status17"></span>
+                <strong>Step 17-20:</strong> Authentication Processing (Auth Context)
+            </div>
+            <div class="step" id="step21">
+                <span class="status-indicator status-pending" id="status21"></span>
+                <strong>Step 21+:</strong> Driver Session Creation & Redirect
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h2>📊 Live Console Output</h2>
+            <div class="log-output" id="console-output">
+                Waiting for driver login to start...
+                Click "Start Driver Login" to begin step-by-step logging.
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h2>🔍 Current State</h2>
+            <div id="current-state">
+                <div class="code">
+                    URL: <span id="current-url">-</span><br>
+                    Session Storage: <span id="session-storage">-</span><br>
+                    Local Storage: <span id="local-storage">-</span><br>
+                    Timestamp: <span id="timestamp">-</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-section">
+            <h2>⚠️ Common Issues to Watch For</h2>
+            <ul>
+                <li><strong>Step 13:</strong> OAuth Error with confirmation_token</li>
+                <li><strong>Step 16:</strong> Token exchange API failure</li>
+                <li><strong>Step 19:</strong> No user data returned from parent app</li>
+                <li><strong>Step 20:</strong> Role validation failure</li>
+                <li><strong>Redirect Issues:</strong> Not reaching /driver dashboard</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let logBuffer = [];
+        let originalConsoleLog = console.log;
+        let originalConsoleError = console.error;
+        let originalConsoleWarn = console.warn;
+
+        // Intercept console logs
+        function interceptConsole() {
+            console.log = function(...args) {
+                originalConsoleLog.apply(console, args);
+                logToOutput('LOG', args.join(' '));
+                analyzeLogForSteps(args.join(' '));
+            };
+
+            console.error = function(...args) {
+                originalConsoleError.apply(console, args);
+                logToOutput('ERROR', args.join(' '));
+                analyzeLogForSteps(args.join(' '));
+            };
+
+            console.warn = function(...args) {
+                originalConsoleWarn.apply(console, args);
+                logToOutput('WARN', args.join(' '));
+                analyzeLogForSteps(args.join(' '));
+            };
+        }
+
+        function logToOutput(level, message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${level}: ${message}`;
+            logBuffer.push(logEntry);
+            
+            const output = document.getElementById('console-output');
+            output.innerHTML += logEntry + '\n';
+            output.scrollTop = output.scrollHeight;
+            
+            updateCurrentState();
+        }
+
+        function analyzeLogForSteps(message) {
+            // Analyze log messages to update step status
+            if (message.includes('[DRIVER OAUTH] Step 1')) {
+                updateStepStatus('step1', 'active');
+            } else if (message.includes('[PARENT AUTH] Step 4')) {
+                updateStepStatus('step1', 'completed');
+                updateStepStatus('step4', 'active');
+            } else if (message.includes('[PARENT AUTH] Step 9')) {
+                updateStepStatus('step4', 'completed');
+            } else if (message.includes('[CALLBACK] Step 10')) {
+                updateStepStatus('step10', 'active');
+            } else if (message.includes('[CALLBACK] Step 13') && message.includes('Error')) {
+                updateStepStatus('step10', 'error');
+            } else if (message.includes('[CALLBACK] Step 14')) {
+                updateStepStatus('step10', 'completed');
+                updateStepStatus('step14', 'active');
+            } else if (message.includes('[CALLBACK] Step 16')) {
+                updateStepStatus('step14', 'completed');
+            } else if (message.includes('[AUTH CONTEXT] Step 17')) {
+                updateStepStatus('step17', 'active');
+            } else if (message.includes('[AUTH CONTEXT] Step 20')) {
+                updateStepStatus('step17', 'completed');
+                updateStepStatus('step21', 'active');
+            } else if (message.includes('redirecting to driver dashboard') || message.includes('/driver')) {
+                updateStepStatus('step21', 'completed');
+            }
+        }
+
+        function updateStepStatus(stepId, status) {
+            const step = document.getElementById(stepId);
+            const statusIndicator = document.getElementById(stepId.replace('step', 'status'));
+            
+            step.className = `step ${status}`;
+            statusIndicator.className = `status-indicator status-${status}`;
+        }
+
+        function updateCurrentState() {
+            document.getElementById('current-url').textContent = window.location.href;
+            document.getElementById('session-storage').textContent = JSON.stringify({
+                tms_oauth_role: sessionStorage.getItem('tms_oauth_role'),
+                oauth_state: sessionStorage.getItem('oauth_state')
+            });
+            document.getElementById('local-storage').textContent = JSON.stringify({
+                tms_driver_user: localStorage.getItem('tms_driver_user'),
+                tms_access_token: localStorage.getItem('tms_access_token')
+            });
+            document.getElementById('timestamp').textContent = new Date().toISOString();
+        }
+
+        function startDriverLogin() {
+            logToOutput('INFO', '🚀 Starting driver login debug session');
+            logToOutput('INFO', '📋 Monitoring console for step-by-step logs');
+            
+            // Reset all steps
+            for (let i = 1; i <= 21; i++) {
+                const stepId = `step${i === 1 ? '1' : i === 4 ? '4' : i === 10 ? '10' : i === 14 ? '14' : i === 17 ? '17' : '21'}`;
+                if (document.getElementById(stepId)) {
+                    updateStepStatus(stepId, 'pending');
+                }
+            }
+            
+            // Navigate to login page and start OAuth
+            logToOutput('INFO', '🔄 Navigating to login page...');
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3003/login';
+            }, 1000);
+        }
+
+        function clearLogs() {
+            logBuffer = [];
+            document.getElementById('console-output').innerHTML = 'Logs cleared. Ready for new session.\n';
+            updateCurrentState();
+        }
+
+        function exportLogs() {
+            const logContent = logBuffer.join('\n');
+            const blob = new Blob([logContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `driver-login-debug-${new Date().toISOString().split('T')[0]}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            logToOutput('INFO', '💾 Debug logs exported');
+        }
+
+        function resetTest() {
+            // Clear all storage
+            sessionStorage.clear();
+            localStorage.clear();
+            
+            // Reset steps
+            for (let i = 1; i <= 21; i++) {
+                const stepId = `step${i === 1 ? '1' : i === 4 ? '4' : i === 10 ? '10' : i === 14 ? '14' : i === 17 ? '17' : '21'}`;
+                if (document.getElementById(stepId)) {
+                    updateStepStatus(stepId, 'pending');
+                }
+            }
+            
+            clearLogs();
+            logToOutput('INFO', '🔄 Test environment reset');
+            updateCurrentState();
+        }
+
+        // Initialize
+        window.onload = function() {
+            interceptConsole();
+            updateCurrentState();
+            logToOutput('INFO', '🔍 Driver Login Debug Console initialized');
+            logToOutput('INFO', '📊 Console logging intercepted - all logs will appear here');
+            
+            // Auto-update state every 2 seconds
+            setInterval(updateCurrentState, 2000);
+        };
+
+        // Listen for storage changes
+        window.addEventListener('storage', updateCurrentState);
+    </script>
+</body>
+</html>

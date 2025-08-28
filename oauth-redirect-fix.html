@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OAuth Redirect Fix - MYJKKN Integration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .issue-section {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #ef4444;
+        }
+        .solution-section {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #10b981;
+        }
+        .info-section {
+            background: #dbeafe;
+            border: 1px solid #3b82f6;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-button {
+            background: #3b82f6;
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .test-button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+        }
+        .fix-button {
+            background: #10b981;
+        }
+        .fix-button:hover {
+            background: #059669;
+        }
+        .code-block {
+            background: #1f2937;
+            color: #10b981;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+        .step-list {
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 3px solid #6b7280;
+        }
+        .step.completed { border-left-color: #10b981; background: #ecfdf5; }
+        .step.failed { border-left-color: #ef4444; background: #fef2f2; }
+        .step.active { border-left-color: #f59e0b; background: #fffbeb; }
+        .log-output {
+            background: #000;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            height: 250px;
+            overflow-y: auto;
+            margin: 20px 0;
+            border: 1px solid #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 OAuth Redirect Fix</h1>
+            <p>Solving the MYJKKN OAuth redirect issue</p>
+        </div>
+
+        <div class="issue-section">
+            <h3>🔴 Issue Identified from Screenshots</h3>
+            <p><strong>Problem:</strong> OAuth flow completes successfully on MYJKKN but doesn't redirect back to TMS</p>
+            <ul>
+                <li>✅ TMS login page works</li>
+                <li>✅ Driver role selection works</li>
+                <li>✅ MYJKKN OAuth authentication succeeds</li>
+                <li>✅ Google authentication completes</li>
+                <li>❌ <strong>MYJKKN doesn't redirect back to TMS callback</strong></li>
+                <li>❌ Shows "Authentication code missing" because no callback occurs</li>
+            </ul>
+        </div>
+
+        <div class="solution-section">
+            <h3>✅ Root Cause & Solution</h3>
+            <p><strong>Cause:</strong> The redirect_uri is not properly registered or recognized by MYJKKN</p>
+            <p><strong>Solution:</strong> Enhanced OAuth parameters and redirect_uri registration</p>
+        </div>
+
+        <div class="info-section">
+            <h3>🔧 Required Actions</h3>
+            <div class="step-list">
+                <div class="step">
+                    <strong>Step 1:</strong> Contact MYJKKN Administrator
+                    <br><small>Request registration of redirect_uri: <code>http://localhost:3003/auth/callback</code></small>
+                </div>
+                <div class="step">
+                    <strong>Step 2:</strong> Verify App Configuration
+                    <br><small>Ensure app_id <code>transport_management_system_menrm674</code> is properly configured</small>
+                </div>
+                <div class="step">
+                    <strong>Step 3:</strong> Test Enhanced OAuth URL
+                    <br><small>Use improved parameter format and order</small>
+                </div>
+                <div class="step">
+                    <strong>Step 4:</strong> Alternative Redirect URIs
+                    <br><small>Try different formats if needed</small>
+                </div>
+            </div>
+        </div>
+
+        <div style="text-align: center; margin: 30px 0;">
+            <h2>🧪 Test OAuth Redirect Fix</h2>
+            
+            <button onclick="runRedirectFix()" class="test-button fix-button">
+                🔧 Run Redirect Fix Analysis
+            </button>
+            
+            <button onclick="testEnhancedOAuth()" class="test-button">
+                🚀 Test Enhanced OAuth URL
+            </button>
+            
+            <button onclick="generateAlternativeUrls()" class="test-button">
+                🔗 Generate Alternative URLs
+            </button>
+            
+            <button onclick="contactMYJKKN()" class="test-button" style="background: #f59e0b;">
+                📞 MYJKKN Contact Info
+            </button>
+        </div>
+
+        <div>
+            <h3>📊 Diagnostic Output</h3>
+            <div class="log-output" id="log-output">
+                OAuth Redirect Fix Tool Ready...
+                Click "Run Redirect Fix Analysis" to begin diagnosis.
+            </div>
+        </div>
+
+        <div id="results-section" style="display: none;">
+            <h3>🔗 Enhanced OAuth URLs</h3>
+            <div class="code-block" id="oauth-urls">
+                Enhanced URLs will appear here...
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>📋 For MYJKKN Administrator</h3>
+            <p>Please register these redirect URIs in the app configuration:</p>
+            <div class="code-block">
+Primary: http://localhost:3003/auth/callback
+Alternative: http://127.0.0.1:3003/auth/callback
+Alternative: http://localhost:3003/auth/callback/
+
+App Details:
+- App ID: transport_management_system_menrm674
+- API Key: app_e20655605d48ebce_cfa1ffe34268949a
+- Scope: read write profile
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function log(message, type = 'INFO') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = `[${timestamp}] ${type}: ${message}`;
+            
+            const output = document.getElementById('log-output');
+            output.innerHTML += logEntry + '\n';
+            output.scrollTop = output.scrollHeight;
+            
+            console.log(logEntry);
+        }
+
+        async function runRedirectFix() {
+            log('🔧 Starting OAuth Redirect Fix Analysis...', 'FIX');
+            
+            // Current configuration
+            const config = {
+                parentAppUrl: 'https://my.jkkn.ac.in',
+                appId: 'transport_management_system_menrm674',
+                apiKey: 'app_e20655605d48ebce_cfa1ffe34268949a',
+                redirectUri: 'http://localhost:3003/auth/callback'
+            };
+            
+            log('📋 Current Configuration:', 'CONFIG');
+            log(`   Parent App: ${config.parentAppUrl}`, 'CONFIG');
+            log(`   App ID: ${config.appId}`, 'CONFIG');
+            log(`   Redirect URI: ${config.redirectUri}`, 'CONFIG');
+            
+            // Test callback accessibility
+            log('🧪 Testing callback URL accessibility...', 'TEST');
+            try {
+                const response = await fetch(config.redirectUri, { method: 'HEAD' });
+                log(`✅ Callback URL accessible: ${response.status}`, 'SUCCESS');
+            } catch (error) {
+                log(`❌ Callback URL not accessible: ${error.message}`, 'ERROR');
+            }
+            
+            // Generate enhanced OAuth URL
+            log('🔗 Generating enhanced OAuth URL...', 'FIX');
+            const state = 'fix_' + Date.now();
+            sessionStorage.setItem('oauth_state', state);
+            sessionStorage.setItem('tms_oauth_role', 'driver');
+            
+            const authUrl = new URL('/api/auth/child-app/authorize', config.parentAppUrl);
+            authUrl.searchParams.append('response_type', 'code');
+            authUrl.searchParams.append('client_id', config.appId);
+            authUrl.searchParams.append('app_id', config.appId);
+            authUrl.searchParams.append('redirect_uri', config.redirectUri);
+            authUrl.searchParams.append('scope', 'read write profile');
+            authUrl.searchParams.append('state', state);
+            authUrl.searchParams.append('api_key', config.apiKey);
+            
+            log('✅ Enhanced OAuth URL generated', 'SUCCESS');
+            log(`🔗 URL: ${authUrl.toString().substring(0, 100)}...`, 'URL');
+            
+            // Show results
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('oauth-urls').innerHTML = `
+Enhanced OAuth URL:
+${authUrl.toString()}
+
+Parameters:
+- response_type: code
+- client_id: ${config.appId}
+- app_id: ${config.appId}
+- redirect_uri: ${config.redirectUri}
+- scope: read write profile
+- state: ${state}
+- api_key: ${config.apiKey.substring(0, 15)}...
+
+Issue: MYJKKN must have this redirect_uri registered in app configuration
+            `;
+            
+            log('📋 Analysis complete. Check results above.', 'COMPLETE');
+            
+            return authUrl.toString();
+        }
+
+        async function testEnhancedOAuth() {
+            log('🚀 Testing Enhanced OAuth Flow...', 'TEST');
+            
+            const enhancedUrl = await runRedirectFix();
+            
+            log('⚠️ You will be redirected to MYJKKN in 5 seconds...', 'WARN');
+            log('💡 After authentication, check if MYJKKN redirects back', 'INFO');
+            log('💡 If it stays on MYJKKN portal, the redirect_uri is not registered', 'INFO');
+            
+            let countdown = 5;
+            const countdownInterval = setInterval(() => {
+                log(`🔄 Redirecting in ${countdown} seconds...`, 'COUNTDOWN');
+                countdown--;
+                
+                if (countdown <= 0) {
+                    clearInterval(countdownInterval);
+                    log('🌐 Redirecting to enhanced OAuth URL...', 'REDIRECT');
+                    window.location.href = enhancedUrl;
+                }
+            }, 1000);
+        }
+
+        function generateAlternativeUrls() {
+            log('🔗 Generating alternative OAuth URLs...', 'ALT');
+            
+            const config = {
+                parentAppUrl: 'https://my.jkkn.ac.in',
+                appId: 'transport_management_system_menrm674',
+                apiKey: 'app_e20655605d48ebce_cfa1ffe34268949a'
+            };
+            
+            const alternativeRedirectUris = [
+                'http://localhost:3003/auth/callback',
+                'http://localhost:3003/auth/callback/',
+                'http://127.0.0.1:3003/auth/callback',
+                'https://localhost:3003/auth/callback'
+            ];
+            
+            const alternativeEndpoints = [
+                '/api/auth/child-app/authorize',
+                '/auth/child-app/consent',
+                '/api/oauth/authorize'
+            ];
+            
+            let urlsHtml = 'Alternative OAuth URLs to try:\n\n';
+            
+            alternativeEndpoints.forEach((endpoint, i) => {
+                alternativeRedirectUris.forEach((redirectUri, j) => {
+                    const state = `alt_${i}_${j}_${Date.now()}`;
+                    const authUrl = new URL(endpoint, config.parentAppUrl);
+                    
+                    authUrl.searchParams.append('response_type', 'code');
+                    authUrl.searchParams.append('client_id', config.appId);
+                    authUrl.searchParams.append('app_id', config.appId);
+                    authUrl.searchParams.append('redirect_uri', redirectUri);
+                    authUrl.searchParams.append('scope', 'read write profile');
+                    authUrl.searchParams.append('state', state);
+                    authUrl.searchParams.append('api_key', config.apiKey);
+                    
+                    urlsHtml += `${i + 1}.${j + 1} Endpoint: ${endpoint}\n`;
+                    urlsHtml += `     Redirect: ${redirectUri}\n`;
+                    urlsHtml += `     URL: ${authUrl.toString()}\n\n`;
+                    
+                    log(`🔗 Alternative ${i + 1}.${j + 1}: ${endpoint} → ${redirectUri}`, 'ALT');
+                });
+            });
+            
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('oauth-urls').textContent = urlsHtml;
+            
+            log('✅ Alternative URLs generated. Check results above.', 'SUCCESS');
+        }
+
+        function contactMYJKKN() {
+            log('📞 MYJKKN Contact Information...', 'CONTACT');
+            
+            const contactInfo = `
+MYJKKN Administrator Contact:
+
+Issue: OAuth redirect_uri not registered
+App ID: transport_management_system_menrm674
+Required redirect_uri: http://localhost:3003/auth/callback
+
+Request: Please register the redirect_uri in the app configuration
+
+Technical Details:
+- OAuth flow completes successfully on MYJKKN side
+- User authentication works correctly
+- Issue: MYJKKN doesn't redirect back to TMS after authentication
+- Cause: redirect_uri not in allowed list for the app
+
+Alternative redirect_uri formats to try:
+- http://localhost:3003/auth/callback
+- http://localhost:3003/auth/callback/
+- http://127.0.0.1:3003/auth/callback
+- https://localhost:3003/auth/callback (if HTTPS required)
+            `;
+            
+            log('📋 Contact information prepared', 'CONTACT');
+            
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('oauth-urls').textContent = contactInfo;
+            
+            // Also copy to clipboard if possible
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(contactInfo).then(() => {
+                    log('📋 Contact info copied to clipboard', 'SUCCESS');
+                }).catch(() => {
+                    log('⚠️ Could not copy to clipboard', 'WARN');
+                });
+            }
+        }
+
+        // Initialize
+        window.onload = function() {
+            log('🔧 OAuth Redirect Fix Tool Initialized', 'INIT');
+            log('💡 Issue: MYJKKN completes auth but doesn\'t redirect back', 'INFO');
+            log('💡 Solution: Register redirect_uri with MYJKKN admin', 'INFO');
+        };
+    </script>
+</body>
+</html>

@@ -1,18 +1,19 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
-import { LucideIcon } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { LucideIcon, Loader2, AlertCircle, CheckCircle, AlertTriangle, Info } from 'lucide-react';
 
-// Modern Button Components
+// Enhanced Button Components
 interface ButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'warning';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   disabled?: boolean;
   loading?: boolean;
   icon?: LucideIcon;
+  iconPosition?: 'left' | 'right';
   fullWidth?: boolean;
   className?: string;
 }
@@ -25,22 +26,27 @@ export const Button: React.FC<ButtonProps> = ({
   disabled = false,
   loading = false,
   icon: Icon,
+  iconPosition = 'left',
   fullWidth = false,
   className = ''
 }) => {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+  const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 touch-feedback relative overflow-hidden';
   
   const variants = {
-    primary: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 shadow-sm hover:shadow-md',
-    secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 focus:ring-gray-500',
-    ghost: 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-gray-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 shadow-sm hover:shadow-md'
+    primary: 'btn-primary',
+    secondary: 'btn-secondary', 
+    ghost: 'btn-ghost',
+    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500 hover:shadow-lg hover:-translate-y-1',
+    success: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500 hover:shadow-lg hover:-translate-y-1',
+    warning: 'bg-amber-600 hover:bg-amber-700 text-white focus:ring-amber-500 hover:shadow-lg hover:-translate-y-1'
   };
   
   const sizes = {
+    xs: 'px-2 py-1 text-xs',
     sm: 'px-3 py-2 text-sm',
     md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3 text-base'
+    lg: 'px-6 py-3 text-base',
+    xl: 'px-8 py-4 text-lg'
   };
   
   const classes = `
@@ -48,7 +54,7 @@ export const Button: React.FC<ButtonProps> = ({
     ${variants[variant]}
     ${sizes[size]}
     ${fullWidth ? 'w-full' : ''}
-    ${disabled || loading ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:transform hover:-translate-y-0.5'}
+    ${disabled || loading ? 'opacity-50 cursor-not-allowed hover:transform-none' : 'cursor-pointer'}
     ${className}
   `.trim();
 
@@ -57,15 +63,39 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled || loading}
       className={classes}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
+      whileTap={{ scale: disabled || loading ? 1 : 0.98 }}
+      whileHover={{ scale: disabled || loading ? 1 : 1.02 }}
     >
-      {loading && (
-        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-      )}
-      {Icon && !loading && (
-        <Icon className="w-4 h-4 mr-2" />
-      )}
-      {children}
+      <AnimatePresence mode="wait">
+        {loading ? (
+          <motion.div
+            key="loading"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="flex items-center"
+          >
+            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            Loading...
+          </motion.div>
+        ) : (
+          <motion.div
+            key="content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="flex items-center"
+          >
+            {Icon && iconPosition === 'left' && (
+              <Icon className="w-4 h-4 mr-2" />
+            )}
+            {children}
+            {Icon && iconPosition === 'right' && (
+              <Icon className="w-4 h-4 ml-2" />
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.button>
   );
 };
@@ -590,6 +620,259 @@ export const Modal: React.FC<ModalProps> = ({
           </div>
         </motion.div>
       </div>
+    </div>
+  );
+};
+
+// Enhanced Skeleton Loading Component
+interface SkeletonProps {
+  className?: string;
+  width?: string | number;
+  height?: string | number;
+  variant?: 'text' | 'circular' | 'rectangular';
+}
+
+export const Skeleton: React.FC<SkeletonProps> = ({
+  className = '',
+  width,
+  height,
+  variant = 'rectangular'
+}) => {
+  const variants = {
+    text: 'skeleton-text',
+    circular: 'skeleton-avatar',
+    rectangular: 'skeleton'
+  };
+
+  const style = {
+    width: typeof width === 'number' ? `${width}px` : width,
+    height: typeof height === 'number' ? `${height}px` : height
+  };
+
+  return (
+    <div 
+      className={`${variants[variant]} ${className}`}
+      style={style}
+    />
+  );
+};
+
+// Enhanced Error State Component
+interface ErrorStateProps {
+  title?: string;
+  message?: string;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  className?: string;
+}
+
+export const ErrorState: React.FC<ErrorStateProps> = ({
+  title = 'Something went wrong',
+  message = 'We encountered an error. Please try again.',
+  action,
+  className = ''
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex flex-col items-center justify-center p-8 text-center ${className}`}
+    >
+      <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+        <AlertCircle className="w-8 h-8 text-red-600" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600 mb-6 max-w-md">{message}</p>
+      {action && (
+        <Button 
+          onClick={action.onClick}
+          variant="primary"
+          className="mt-4"
+        >
+          {action.label}
+        </Button>
+      )}
+    </motion.div>
+  );
+};
+
+// Enhanced Empty State Component
+interface EmptyStateProps {
+  title?: string;
+  message?: string;
+  icon?: LucideIcon;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
+  className?: string;
+}
+
+export const EmptyState: React.FC<EmptyStateProps> = ({
+  title = 'No items found',
+  message = 'There are no items to display at this time.',
+  icon: Icon,
+  action,
+  className = ''
+}) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`flex flex-col items-center justify-center p-8 text-center ${className}`}
+    >
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+        {Icon ? (
+          <Icon className="w-8 h-8 text-gray-400" />
+        ) : (
+          <div className="w-8 h-8 bg-gray-300 rounded" />
+        )}
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-600 mb-6 max-w-md">{message}</p>
+      {action && (
+        <Button 
+          onClick={action.onClick}
+          variant="primary"
+          className="mt-4"
+        >
+          {action.label}
+        </Button>
+      )}
+    </motion.div>
+  );
+};
+
+// Theme Toggle Component
+interface ThemeToggleProps {
+  isDark?: boolean;
+  onToggle: (isDark: boolean) => void;
+  className?: string;
+}
+
+export const ThemeToggle: React.FC<ThemeToggleProps> = ({
+  isDark = false,
+  onToggle,
+  className = ''
+}) => {
+  return (
+    <button
+      onClick={() => onToggle(!isDark)}
+      className={`theme-toggle ${isDark ? 'dark' : ''} ${className}`}
+      aria-label={`Switch to ${isDark ? 'light' : 'dark'} mode`}
+    >
+      <span className="sr-only">
+        {isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+      </span>
+    </button>
+  );
+};
+
+// Enhanced Loading Overlay Component
+interface LoadingOverlayProps {
+  isVisible: boolean;
+  message?: string;
+  className?: string;
+}
+
+export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
+  isVisible,
+  message = 'Loading...',
+  className = ''
+}) => {
+  if (!isVisible) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className={`fixed inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50 ${className}`}
+    >
+      <div className="flex flex-col items-center space-y-4">
+        <Spinner size="lg" color="green" />
+        <p className="text-gray-600 font-medium">{message}</p>
+      </div>
+    </motion.div>
+  );
+};
+
+// Swipe Handler Component for Touch Interactions  
+interface SwipeHandlerProps {
+  children: React.ReactNode;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
+  onSwipeUp?: () => void;
+  onSwipeDown?: () => void;
+  threshold?: number;
+  className?: string;
+}
+
+export const SwipeHandler: React.FC<SwipeHandlerProps> = ({
+  children,
+  onSwipeLeft,
+  onSwipeRight,
+  onSwipeUp,
+  onSwipeDown,
+  threshold = 50,
+  className = ''
+}) => {
+  const [touchStart, setTouchStart] = React.useState<{ x: number; y: number } | null>(null);
+  const [touchEnd, setTouchEnd] = React.useState<{ x: number; y: number } | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd({
+      x: e.targetTouches[0].clientX,
+      y: e.targetTouches[0].clientY
+    });
+  };
+
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+
+    const distanceX = touchStart.x - touchEnd.x;
+    const distanceY = touchStart.y - touchEnd.y;
+    const isLeftSwipe = distanceX > threshold;
+    const isRightSwipe = distanceX < -threshold;
+    const isUpSwipe = distanceY > threshold;
+    const isDownSwipe = distanceY < -threshold;
+
+    // Prioritize horizontal swipes over vertical ones
+    if (Math.abs(distanceX) > Math.abs(distanceY)) {
+      if (isLeftSwipe && onSwipeLeft) {
+        onSwipeLeft();
+      }
+      if (isRightSwipe && onSwipeRight) {
+        onSwipeRight();
+      }
+    } else {
+      if (isUpSwipe && onSwipeUp) {
+        onSwipeUp();
+      }
+      if (isDownSwipe && onSwipeDown) {
+        onSwipeDown();
+      }
+    }
+  };
+
+  return (
+    <div
+      className={`touch-feedback ${className}`}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {children}
     </div>
   );
 }; 

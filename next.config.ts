@@ -17,13 +17,22 @@ const nextConfig: NextConfig = {
     pagesBufferLength: 2,
   },
 
-  // Suppress console warnings for hydration mismatches
+  // Suppress console warnings for hydration mismatches and Supabase realtime warnings
   webpack: (config, { dev, isServer }) => {
     if (dev && !isServer) {
       config.infrastructureLogging = {
         level: 'error',
       };
     }
+    
+    // Suppress Supabase realtime critical dependency warnings
+    config.ignoreWarnings = [
+      {
+        module: /node_modules\/@supabase\/realtime-js\/dist\/module\/lib\/websocket-factory\.js/,
+        message: /Critical dependency: the request of a dependency is an expression/,
+      },
+    ];
+    
     return config;
   },
 };

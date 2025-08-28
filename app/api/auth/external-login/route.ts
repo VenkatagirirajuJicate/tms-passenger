@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     console.log('🔍 External Auth: Verifying student with external API...');
     const apiKey = 'jk_5483dc7eb7f1b7cd730a274ec61765cc_mcka9lzk';
     
-    const response = await fetch('https://myadmin.jkkn.ac.in/api/api-management/students', {
+    const response = await fetch('https://my.jkkn.ac.in/api/api-management/students', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

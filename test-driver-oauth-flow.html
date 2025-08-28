@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver OAuth Flow Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f0f9ff;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .success { background: #d1fae5; border-left: 4px solid #10b981; }
+        .info { background: #dbeafe; border-left: 4px solid #3b82f6; }
+        .warning { background: #fef3c7; border-left: 4px solid #f59e0b; }
+        .error { background: #fee2e2; border-left: 4px solid #ef4444; }
+        .test-button {
+            background: #10b981;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-size: 16px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .test-button:hover { background: #059669; }
+        .test-button.secondary { background: #6b7280; }
+        .test-button.secondary:hover { background: #4b5563; }
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .step {
+            background: #f3f4f6;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 3px solid #6b7280;
+        }
+        .step.active { border-left-color: #10b981; background: #ecfdf5; }
+        .step.completed { border-left-color: #10b981; background: #d1fae5; }
+        .step.failed { border-left-color: #ef4444; background: #fee2e2; }
+    </style>
+</head>
+<body>
+    <h1>🚗 Driver OAuth Flow Test</h1>
+    
+    <div class="test-section success">
+        <h2>✅ Enhanced Driver OAuth Implementation</h2>
+        <p>The driver OAuth flow has been enhanced with:</p>
+        <ul>
+            <li><strong>✅ Expanded Role Validation:</strong> Now accepts admin, faculty, teacher roles</li>
+            <li><strong>✅ Target User Override:</strong> Specific access for arthanareswaran22@jkkn.ac.in</li>
+            <li><strong>✅ Enhanced Debugging:</strong> Detailed console logging for troubleshooting</li>
+            <li><strong>✅ Proper Redirects:</strong> Ensures driver users go to /driver dashboard</li>
+        </ul>
+    </div>
+
+    <div class="test-section info">
+        <h2>🔍 Test Steps</h2>
+        <div class="step" id="step1">
+            <strong>Step 1:</strong> Set Driver OAuth Flag
+            <button onclick="setDriverFlag()" class="test-button">Set Driver Flag</button>
+            <div id="step1-result"></div>
+        </div>
+        
+        <div class="step" id="step2">
+            <strong>Step 2:</strong> Test OAuth URL Generation
+            <button onclick="testOAuthURL()" class="test-button">Generate OAuth URL</button>
+            <div id="step2-result"></div>
+        </div>
+        
+        <div class="step" id="step3">
+            <strong>Step 3:</strong> Start Driver OAuth Flow
+            <button onclick="startDriverOAuth()" class="test-button">Start Driver OAuth</button>
+            <div id="step3-result"></div>
+        </div>
+        
+        <div class="step" id="step4">
+            <strong>Step 4:</strong> Check Session Storage
+            <button onclick="checkSessionStorage()" class="test-button secondary">Check Storage</button>
+            <div id="step4-result"></div>
+        </div>
+    </div>
+
+    <div class="test-section warning">
+        <h2>⚠️ What to Expect</h2>
+        <ol>
+            <li><strong>OAuth Initiation:</strong> System sets <code>tms_oauth_role: 'driver'</code></li>
+            <li><strong>Parent App Redirect:</strong> You'll be redirected to MYJKKN login</li>
+            <li><strong>Authentication:</strong> Enter credentials for arthanareswaran22@jkkn.ac.in</li>
+            <li><strong>Callback Processing:</strong> System validates role and creates driver session</li>
+            <li><strong>Driver Dashboard:</strong> You should be redirected to <code>/driver</code></li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>🚀 Quick Links</h2>
+        <a href="http://localhost:3003/login" class="test-button">Go to Login Page</a>
+        <a href="http://localhost:3003/auth/callback" class="test-button secondary">Test Callback Page</a>
+        <a href="http://localhost:3003/driver" class="test-button secondary">Driver Dashboard</a>
+    </div>
+
+    <div class="test-section">
+        <h2>📊 Debug Information</h2>
+        <div class="code" id="debug-info">
+            Click "Check Session Storage" to see current state...
+        </div>
+    </div>
+
+    <script>
+        function setDriverFlag() {
+            sessionStorage.setItem('tms_oauth_role', 'driver');
+            document.getElementById('step1').classList.add('completed');
+            document.getElementById('step1-result').innerHTML = 
+                '<div style="color: #10b981; margin-top: 10px;">✅ Driver OAuth flag set in sessionStorage</div>';
+            console.log('✅ Driver OAuth flag set:', sessionStorage.getItem('tms_oauth_role'));
+        }
+
+        function testOAuthURL() {
+            const config = {
+                parentAppUrl: 'https://my.jkkn.ac.in',
+                appId: 'transport_management_system_menrm674',
+                apiKey: 'app_e20655605d48ebce_cfa1ffe34268949a',
+                redirectUri: 'http://localhost:3003/auth/callback'
+            };
+            
+            const state = Math.random().toString(36).substring(2, 15) + 
+                          Math.random().toString(36).substring(2, 15);
+            
+            const authUrl = new URL('/api/auth/child-app/authorize', config.parentAppUrl);
+            authUrl.searchParams.append('response_type', 'code');
+            authUrl.searchParams.append('app_id', config.appId);
+            authUrl.searchParams.append('api_key', config.apiKey);
+            authUrl.searchParams.append('redirect_uri', config.redirectUri);
+            authUrl.searchParams.append('scope', 'read write profile');
+            authUrl.searchParams.append('state', state);
+            
+            document.getElementById('step2').classList.add('completed');
+            document.getElementById('step2-result').innerHTML = `
+                <div style="color: #10b981; margin-top: 10px;">✅ OAuth URL generated successfully</div>
+                <div class="code" style="font-size: 12px; margin-top: 10px;">${authUrl.toString()}</div>
+            `;
+            
+            console.log('✅ OAuth URL generated:', authUrl.toString());
+            return authUrl.toString();
+        }
+
+        function startDriverOAuth() {
+            // Set the driver flag first
+            sessionStorage.setItem('tms_oauth_role', 'driver');
+            
+            // Generate OAuth URL
+            const oauthUrl = testOAuthURL();
+            
+            document.getElementById('step3').classList.add('active');
+            document.getElementById('step3-result').innerHTML = `
+                <div style="color: #f59e0b; margin-top: 10px;">⏳ Starting OAuth flow...</div>
+                <div style="margin-top: 10px;">
+                    <strong>You will be redirected to MYJKKN in 3 seconds...</strong><br>
+                    <small>Login with: arthanareswaran22@jkkn.ac.in</small>
+                </div>
+            `;
+            
+            console.log('🚀 Starting driver OAuth flow...');
+            console.log('📋 Session storage set:', {
+                tms_oauth_role: sessionStorage.getItem('tms_oauth_role')
+            });
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                console.log('🔄 Redirecting to OAuth URL...');
+                window.location.href = oauthUrl;
+            }, 3000);
+        }
+
+        function checkSessionStorage() {
+            const sessionData = {
+                tms_oauth_role: sessionStorage.getItem('tms_oauth_role'),
+                oauth_state: sessionStorage.getItem('oauth_state'),
+                post_login_redirect: sessionStorage.getItem('post_login_redirect')
+            };
+            
+            const localStorageData = {
+                tms_access_token: localStorage.getItem('tms_access_token'),
+                tms_user: localStorage.getItem('tms_user'),
+                tms_driver_user: localStorage.getItem('tms_driver_user'),
+                tms_driver_token: localStorage.getItem('tms_driver_token')
+            };
+            
+            document.getElementById('step4').classList.add('completed');
+            document.getElementById('debug-info').innerHTML = `
+Session Storage:
+${JSON.stringify(sessionData, null, 2)}
+
+Local Storage:
+${JSON.stringify(localStorageData, null, 2)}
+
+Cookies:
+${document.cookie || 'No cookies set'}
+
+Current URL:
+${window.location.href}
+
+Timestamp: ${new Date().toISOString()}
+            `;
+            
+            console.log('📊 Current storage state:', {
+                sessionStorage: sessionData,
+                localStorage: localStorageData,
+                cookies: document.cookie
+            });
+        }
+
+        // Auto-check storage on page load
+        window.onload = function() {
+            console.log('🔍 Driver OAuth Flow Test initialized');
+            checkSessionStorage();
+        };
+
+        // Listen for storage changes
+        window.addEventListener('storage', function(e) {
+            console.log('📊 Storage changed:', e.key, e.newValue);
+            checkSessionStorage();
+        });
+    </script>
+</body>
+</html>

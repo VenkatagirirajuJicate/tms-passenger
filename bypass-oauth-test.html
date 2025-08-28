@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bypass OAuth - Direct Driver Access</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 700px;
+            width: 100%;
+            text-align: center;
+        }
+        .error-alert {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #ef4444;
+            text-align: left;
+        }
+        .solution-alert {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #10b981;
+            text-align: left;
+        }
+        .bypass-button {
+            background: #10b981;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 15px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .bypass-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        .test-button {
+            background: #3b82f6;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .test-button:hover {
+            background: #2563eb;
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            margin: 15px 0;
+            text-align: left;
+            font-size: 14px;
+        }
+        .steps {
+            text-align: left;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 12px;
+            background: white;
+            border-radius: 6px;
+            border-left: 3px solid #10b981;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚫 OAuth Bypass - Direct Driver Access</h1>
+        
+        <div class="error-alert">
+            <h3>🔴 OAuth Issue Confirmed</h3>
+            <p><strong>Problem:</strong> "Authentication code missing" error during OAuth callback</p>
+            <p><strong>Cause:</strong> Parent app (MYJKKN) database issue with confirmation_token NULL values</p>
+            <div class="code">
+Error: unable to fetch records: sql: Scan error on column index 3, 
+name "confirmation_token": converting NULL to string is unsupported
+            </div>
+        </div>
+        
+        <div class="solution-alert">
+            <h3>✅ Solution Available</h3>
+            <p><strong>Bypass OAuth completely</strong> using direct authentication methods that don't depend on the parent app's broken database.</p>
+        </div>
+        
+        <div class="steps">
+            <h3>🎯 Immediate Solutions:</h3>
+            <div class="step">
+                <strong>Option 1:</strong> Direct Driver Login (Recommended)
+                <br><small>Bypasses OAuth entirely, uses local authentication</small>
+            </div>
+            <div class="step">
+                <strong>Option 2:</strong> Create Local Driver Account
+                <br><small>Set up independent driver account in TMS database</small>
+            </div>
+            <div class="step">
+                <strong>Option 3:</strong> No-OAuth Landing Page
+                <br><small>Alternative entry point with multiple login options</small>
+            </div>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <h2>🚀 Choose Your Access Method:</h2>
+            
+            <a href="http://localhost:3003/driver/login" class="bypass-button">
+                🎯 Direct Driver Login<br>
+                <small style="font-size: 14px; opacity: 0.9;">Recommended - No OAuth</small>
+            </a>
+            
+            <a href="http://localhost:3003/no-oauth" class="bypass-button">
+                🏠 No-OAuth Landing<br>
+                <small style="font-size: 14px; opacity: 0.9;">Multiple Options</small>
+            </a>
+            
+            <button onclick="createDriverAccount()" class="bypass-button test-button">
+                👤 Create Driver Account<br>
+                <small style="font-size: 14px; opacity: 0.9;">If account doesn't exist</small>
+            </button>
+            
+            <button onclick="testDirectAuth()" class="bypass-button test-button">
+                🧪 Test Direct Auth<br>
+                <small style="font-size: 14px; opacity: 0.9;">Check authentication</small>
+            </button>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <h3>🔧 Debug Information</h3>
+            <div class="code" id="debug-info">
+                Click "Test Direct Auth" to check current authentication status...
+            </div>
+        </div>
+        
+        <div style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+            <p><strong>Why OAuth Fails:</strong> The parent app (my.jkkn.ac.in) has NULL values in the confirmation_token column of their auth.users table. This causes the OAuth flow to crash with a SQL error.</p>
+            <p><strong>Our Solution:</strong> Direct authentication that doesn't rely on the parent app's database, providing full driver functionality.</p>
+        </div>
+    </div>
+
+    <script>
+        async function createDriverAccount() {
+            const email = 'arthanareswaran22@jkkn.ac.in';
+            const password = prompt('Enter password for driver account:');
+            
+            if (!password) {
+                alert('Password is required to create driver account');
+                return;
+            }
+            
+            try {
+                console.log('🔄 Creating driver account...');
+                
+                const response = await fetch('/api/admin/create-driver', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: 'Arthanareswaran',
+                        email: email,
+                        phone: '9876543210',
+                        licenseNumber: 'DL123456789',
+                        password: password,
+                        adminKey: 'admin123' // Simple admin key for testing
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    alert('✅ Driver account created successfully! You can now use direct login.');
+                    console.log('✅ Driver account created:', result);
+                } else {
+                    alert('❌ Failed to create driver account: ' + result.error);
+                    console.error('❌ Account creation failed:', result);
+                }
+            } catch (error) {
+                alert('❌ Error creating driver account: ' + error.message);
+                console.error('❌ Account creation error:', error);
+            }
+        }
+        
+        async function testDirectAuth() {
+            try {
+                console.log('🧪 Testing direct authentication...');
+                
+                // Check if driver account exists
+                const checkResponse = await fetch('/api/check-driver', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: 'arthanareswaran22@jkkn.ac.in' })
+                });
+                
+                const checkResult = await checkResponse.json();
+                
+                // Check current authentication status
+                const authStatus = {
+                    driverAccountExists: checkResult.exists,
+                    sessionStorage: {
+                        tms_oauth_role: sessionStorage.getItem('tms_oauth_role'),
+                        oauth_state: sessionStorage.getItem('oauth_state')
+                    },
+                    localStorage: {
+                        tms_driver_user: localStorage.getItem('tms_driver_user'),
+                        tms_driver_token: localStorage.getItem('tms_driver_token'),
+                        tms_access_token: localStorage.getItem('tms_access_token')
+                    },
+                    cookies: document.cookie,
+                    currentUrl: window.location.href
+                };
+                
+                document.getElementById('debug-info').innerHTML = `
+Authentication Status Check:
+${JSON.stringify(authStatus, null, 2)}
+
+Driver Account: ${checkResult.exists ? '✅ EXISTS' : '❌ NOT FOUND'}
+Current Auth: ${authStatus.localStorage.tms_driver_token ? '✅ AUTHENTICATED' : '❌ NOT AUTHENTICATED'}
+
+Recommendation: ${checkResult.exists ? 
+    'Use Direct Driver Login' : 
+    'Create Driver Account first, then use Direct Login'}
+                `;
+                
+                console.log('🧪 Authentication status:', authStatus);
+                
+            } catch (error) {
+                document.getElementById('debug-info').textContent = 'Error testing authentication: ' + error.message;
+                console.error('🧪 Auth test error:', error);
+            }
+        }
+        
+        // Auto-run auth test on page load
+        window.onload = function() {
+            console.log('🚫 OAuth Bypass Page Loaded');
+            console.log('🔍 OAuth issue: Authentication code missing + confirmation_token NULL error');
+            console.log('✅ Solution: Direct authentication bypass available');
+            
+            // Auto-test authentication status
+            setTimeout(testDirectAuth, 1000);
+        };
+    </script>
+</body>
+</html>

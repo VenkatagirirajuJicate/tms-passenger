@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Driver Access - Bypass OAuth Issues</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .error-badge {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #ef4444;
+        }
+        .solution-badge {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #10b981;
+        }
+        .access-button {
+            background: #10b981;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+        }
+        .access-button:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+        .secondary-button {
+            background: #6b7280;
+            box-shadow: 0 4px 15px rgba(107, 114, 128, 0.3);
+        }
+        .secondary-button:hover {
+            background: #4b5563;
+            box-shadow: 0 6px 20px rgba(107, 114, 128, 0.4);
+        }
+        .icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        .steps {
+            text-align: left;
+            background: #f9fafb;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            border-left: 3px solid #10b981;
+        }
+        .code {
+            background: #1f2937;
+            color: #10b981;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🚗</div>
+        <h1>Driver Access - OAuth Issue Bypass</h1>
+        
+        <div class="error-badge">
+            <strong>⚠️ Parent App Database Issue Detected</strong><br>
+            The MYJKKN OAuth system has a database error with NULL confirmation tokens.<br>
+            <span class="code">confirmation_token: converting NULL to string is unsupported</span>
+        </div>
+        
+        <div class="solution-badge">
+            <strong>✅ Solution Available</strong><br>
+            Use direct login to bypass OAuth and access the driver dashboard immediately.
+        </div>
+        
+        <div class="steps">
+            <h3>🎯 Quick Access Steps:</h3>
+            <div class="step">
+                <strong>Step 1:</strong> Click "Direct Driver Login" below
+            </div>
+            <div class="step">
+                <strong>Step 2:</strong> Email is pre-filled: arthanareswaran22@jkkn.ac.in
+            </div>
+            <div class="step">
+                <strong>Step 3:</strong> Enter your password
+            </div>
+            <div class="step">
+                <strong>Step 4:</strong> Access driver dashboard immediately
+            </div>
+        </div>
+        
+        <div style="margin: 30px 0;">
+            <a href="http://localhost:3003/driver/login" class="access-button">
+                🚀 Direct Driver Login
+            </a>
+            <br>
+            <a href="http://localhost:3003/no-oauth" class="access-button secondary-button">
+                🏠 Alternative Login Page
+            </a>
+        </div>
+        
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
+            <h3>🔧 Other Options:</h3>
+            <a href="http://localhost:3003/login?mode=direct" class="access-button secondary-button">
+                Direct Mode Login
+            </a>
+            <a href="http://localhost:3003/login" class="access-button secondary-button">
+                Main Login Page
+            </a>
+        </div>
+        
+        <div style="margin-top: 30px; font-size: 14px; color: #6b7280;">
+            <p><strong>Technical Note:</strong> This bypass is necessary due to a database issue in the parent app's authentication system. The direct login method authenticates via the local TMS database and provides full driver functionality.</p>
+        </div>
+    </div>
+
+    <script>
+        console.log('🚗 Quick Driver Access Page Loaded');
+        console.log('🔍 Parent App OAuth Issue: confirmation_token NULL error');
+        console.log('✅ Solution: Direct login bypass available');
+        console.log('🎯 Recommended: Click "Direct Driver Login" for immediate access');
+        
+        // Auto-redirect after 10 seconds if user doesn't click
+        let countdown = 10;
+        const autoRedirect = setInterval(() => {
+            countdown--;
+            if (countdown <= 0) {
+                console.log('🔄 Auto-redirecting to direct driver login...');
+                window.location.href = 'http://localhost:3003/driver/login';
+                clearInterval(autoRedirect);
+            }
+        }, 1000);
+        
+        // Clear auto-redirect if user interacts with page
+        document.addEventListener('click', () => {
+            clearInterval(autoRedirect);
+            console.log('🖱️ User interaction detected - auto-redirect cancelled');
+        });
+    </script>
+</body>
+</html>

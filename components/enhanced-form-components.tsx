@@ -1,207 +1,216 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
+  LucideIcon, 
   Eye, 
   EyeOff, 
-  Check, 
-  X, 
   AlertCircle, 
-  Search, 
-  Calendar, 
-  ChevronDown,
-  Upload,
-  Trash2,
-  Plus,
+  CheckCircle, 
   Info,
-  CheckCircle,
-  XCircle,
-  Clock,
-  User,
-  Mail,
-  Phone,
-  MapPin,
-  Building,
-  CreditCard,
-  FileText,
-  Image,
-  Paperclip
+  Search,
+  X,
+  ChevronDown,
+  Calendar,
+  Clock
 } from 'lucide-react';
 
-// Enhanced Input Component
+// Enhanced Input Component with Real-time Validation
 interface EnhancedInputProps {
-  label: string;
-  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url';
+  label?: string;
   placeholder?: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  type?: 'text' | 'email' | 'password' | 'number' | 'tel' | 'url' | 'search';
   disabled?: boolean;
-  required?: boolean;
-  icon?: React.ComponentType<{ className?: string }>;
+  error?: string;
+  success?: string;
   hint?: string;
-  className?: string;
+  icon?: LucideIcon;
+  iconPosition?: 'left' | 'right';
+  required?: boolean;
   autoComplete?: string;
-  maxLength?: number;
   onValidate?: (value: string) => string | undefined;
+  className?: string;
 }
 
 export const EnhancedInput: React.FC<EnhancedInputProps> = ({
   label,
-  type = 'text',
   placeholder,
-  value,
+  value = '',
   onChange,
-  error,
+  type = 'text',
   disabled = false,
-  required = false,
-  icon: Icon,
+  error,
+  success,
   hint,
-  className = '',
+  icon: Icon,
+  iconPosition = 'left',
+  required = false,
   autoComplete,
-  maxLength,
-  onValidate
+  onValidate,
+  className = ''
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
-  const [localError, setLocalError] = useState<string | undefined>(error);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [focused, setFocused] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [localError, setLocalError] = useState<string>();
+
+  const isPassword = type === 'password';
+  const currentError = error || localError;
+  const hasError = Boolean(currentError);
+  const hasSuccess = Boolean(success) && !hasError;
 
   useEffect(() => {
-    setLocalError(error);
-  }, [error]);
+    if (onValidate && value && touched) {
+      const validationError = onValidate(value);
+      setLocalError(validationError);
+    }
+  }, [value, onValidate, touched]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
-    onChange(newValue);
+    onChange?.(newValue);
     
-    if (onValidate) {
+    if (onValidate && touched) {
       const validationError = onValidate(newValue);
       setLocalError(validationError);
     }
   };
 
-  const inputType = type === 'password' && showPassword ? 'text' : type;
-  const hasError = Boolean(localError);
+  const handleBlur = () => {
+    setFocused(false);
+    setTouched(true);
+    
+    if (onValidate && value) {
+      const validationError = onValidate(value);
+      setLocalError(validationError);
+    }
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Label */}
-      <label className="block text-sm font-semibold text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-
-      {/* Input Container */}
+      {label && (
+        <label className="form-label">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      
       <div className="relative">
-        <div className={`
-          relative flex items-center rounded-xl border-2 transition-all duration-200 
-          ${hasError 
-            ? 'border-red-300 bg-red-50' 
-            : isFocused 
-              ? 'border-blue-300 bg-blue-50' 
-              : 'border-gray-200 bg-white hover:border-gray-300'
-          }
-          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-        `}>
-          {/* Left Icon */}
-          {Icon && (
-            <div className="absolute left-3 flex items-center">
-              <Icon className={`w-5 h-5 ${hasError ? 'text-red-400' : isFocused ? 'text-blue-400' : 'text-gray-400'}`} />
-            </div>
+        {/* Left Icon */}
+        {Icon && iconPosition === 'left' && (
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Icon className={`h-5 w-5 ${focused ? 'text-green-500' : 'text-gray-400'} transition-colors`} />
+          </div>
+        )}
+        
+        {/* Input Field */}
+        <input
+          type={isPassword ? (showPassword ? 'text' : 'password') : type}
+          value={value}
+          onChange={handleChange}
+          onFocus={() => setFocused(true)}
+          onBlur={handleBlur}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          autoComplete={autoComplete}
+          className={`
+            form-input
+            ${Icon && iconPosition === 'left' ? 'pl-10' : ''}
+            ${Icon && iconPosition === 'right' ? 'pr-10' : ''}
+            ${isPassword ? 'pr-10' : ''}
+            ${hasError ? 'form-input-error' : ''}
+            ${hasSuccess ? 'border-green-500 focus:border-green-600' : ''}
+            ${focused ? 'ring-2' : ''}
+            transition-all duration-200
+          `.trim()}
+        />
+        
+        {/* Right Icon or Password Toggle */}
+        <div className="absolute inset-y-0 right-0 flex items-center space-x-2 pr-3">
+          {Icon && iconPosition === 'right' && (
+            <Icon className={`h-5 w-5 ${focused ? 'text-green-500' : 'text-gray-400'} transition-colors`} />
           )}
-
-          {/* Input */}
-          <input
-            ref={inputRef}
-            type={inputType}
-            placeholder={placeholder}
-            value={value}
-            onChange={handleChange}
-            onFocus={() => setIsFocused(true)}
-            onBlur={() => setIsFocused(false)}
-            disabled={disabled}
-            required={required}
-            autoComplete={autoComplete}
-            maxLength={maxLength}
-            className={`
-              w-full py-3 px-4 text-sm bg-transparent outline-none placeholder-gray-400
-              ${Icon ? 'pl-12' : ''}
-              ${type === 'password' ? 'pr-12' : ''}
-              ${disabled ? 'cursor-not-allowed' : ''}
-            `}
-          />
-
-          {/* Password Toggle */}
-          {type === 'password' && (
+          
+          {isPassword && (
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              className="text-gray-400 hover:text-gray-600 transition-colors"
             >
-              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
             </button>
           )}
-
-          {/* Validation Icon */}
-          {!hasError && value && (
-            <div className="absolute right-3 flex items-center">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-            </div>
+          
+          {/* Status Icon */}
+          {hasError && (
+            <AlertCircle className="h-5 w-5 text-red-500" />
+          )}
+          {hasSuccess && (
+            <CheckCircle className="h-5 w-5 text-green-500" />
           )}
         </div>
-
-        {/* Character Count */}
-        {maxLength && (
-          <div className="absolute right-3 top-full mt-1 text-xs text-gray-400">
-            {value.length}/{maxLength}
-          </div>
-        )}
       </div>
-
-      {/* Error Message */}
+      
+      {/* Messages */}
       <AnimatePresence>
-        {hasError && (
+        {currentError && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center space-x-2 text-red-600 text-sm"
+            className="form-error"
           >
             <AlertCircle className="w-4 h-4" />
-            <span>{localError}</span>
+            {currentError}
           </motion.div>
         )}
+        
+        {success && !hasError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-green-600 text-xs flex items-center gap-1"
+          >
+            <CheckCircle className="w-4 h-4" />
+            {success}
+          </motion.div>
+        )}
+        
+        {hint && !hasError && !success && (
+          <p className="text-gray-500 text-xs flex items-center gap-1">
+            <Info className="w-4 h-4" />
+            {hint}
+          </p>
+        )}
       </AnimatePresence>
-
-      {/* Hint */}
-      {hint && !hasError && (
-        <div className="flex items-center space-x-2 text-gray-500 text-sm">
-          <Info className="w-4 h-4" />
-          <span>{hint}</span>
-        </div>
-      )}
     </div>
   );
 };
 
-// Enhanced Select Component
+// Enhanced Select Component with Search
 interface SelectOption {
   value: string;
   label: string;
-  disabled?: boolean;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: LucideIcon;
 }
 
 interface EnhancedSelectProps {
-  label: string;
+  label?: string;
   options: SelectOption[];
-  value: string;
-  onChange: (value: string) => void;
+  value?: string;
+  onChange?: (value: string) => void;
   placeholder?: string;
-  error?: string;
   disabled?: boolean;
+  error?: string;
   required?: boolean;
   searchable?: boolean;
   className?: string;
@@ -213,142 +222,120 @@ export const EnhancedSelect: React.FC<EnhancedSelectProps> = ({
   value,
   onChange,
   placeholder = 'Select an option',
-  error,
   disabled = false,
+  error,
   required = false,
   searchable = false,
   className = ''
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFocused, setIsFocused] = useState(false);
-  const selectRef = useRef<HTMLDivElement>(null);
-
-  const filteredOptions = searchable
-    ? options.filter(option => 
-        option.label.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : options;
-
-  const selectedOption = options.find(opt => opt.value === value);
-  const hasError = Boolean(error);
+  const [filteredOptions, setFilteredOptions] = useState(options);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setIsFocused(false);
-      }
-    };
+    if (searchTerm) {
+      const filtered = options.filter(option =>
+        option.label.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredOptions(filtered);
+    } else {
+      setFilteredOptions(options);
+    }
+  }, [searchTerm, options]);
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const selectedOption = options.find(opt => opt.value === value);
 
   const handleSelect = (optionValue: string) => {
-    onChange(optionValue);
+    onChange?.(optionValue);
     setIsOpen(false);
     setSearchTerm('');
   };
 
   return (
-    <div className={`space-y-2 ${className}`} ref={selectRef}>
-      {/* Label */}
-      <label className="block text-sm font-semibold text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-
-      {/* Select Container */}
+    <div className={`relative space-y-2 ${className}`}>
+      {label && (
+        <label className="form-label">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      
       <div className="relative">
-        <div
+        <button
+          type="button"
+          onClick={() => !disabled && setIsOpen(!isOpen)}
+          disabled={disabled}
           className={`
-            relative flex items-center justify-between rounded-xl border-2 transition-all duration-200 cursor-pointer
-            ${hasError 
-              ? 'border-red-300 bg-red-50' 
-              : isFocused || isOpen
-                ? 'border-blue-300 bg-blue-50' 
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-          `}
-          onClick={() => {
-            if (!disabled) {
-              setIsOpen(!isOpen);
-              setIsFocused(true);
-            }
-          }}
+            form-input
+            flex items-center justify-between
+            ${error ? 'form-input-error' : ''}
+            ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+          `.trim()}
         >
-          <div className="flex items-center flex-1 py-3 px-4">
+          <div className="flex items-center space-x-2">
             {selectedOption?.icon && (
-              <selectedOption.icon className="w-5 h-5 mr-3 text-gray-400" />
+              <selectedOption.icon className="w-4 h-4 text-gray-500" />
             )}
-            <span className={`text-sm ${selectedOption ? 'text-gray-900' : 'text-gray-400'}`}>
-              {selectedOption ? selectedOption.label : placeholder}
+            <span className={selectedOption ? 'text-gray-900' : 'text-gray-500'}>
+              {selectedOption?.label || placeholder}
             </span>
           </div>
-          
-          <div className="pr-4">
-            <ChevronDown className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-          </div>
-        </div>
-
-        {/* Dropdown */}
+          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        </button>
+        
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: -10, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-50 max-h-60 overflow-hidden"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-hidden"
             >
-              {/* Search */}
               {searchable && (
-                <div className="p-3 border-b border-gray-100">
+                <div className="p-2 border-b border-gray-200">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                       type="text"
-                      placeholder="Search options..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Search options..."
+                      className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                     />
+                    {searchTerm && (
+                      <button
+                        onClick={() => setSearchTerm('')}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
-
-              {/* Options */}
+              
               <div className="max-h-48 overflow-y-auto">
-                {filteredOptions.map((option) => (
-                  <div
-                    key={option.value}
-                    className={`
-                      flex items-center px-4 py-3 text-sm cursor-pointer transition-colors
-                      ${option.disabled 
-                        ? 'opacity-50 cursor-not-allowed' 
-                        : 'hover:bg-gray-50'
-                      }
-                      ${option.value === value ? 'bg-blue-50 text-blue-600' : 'text-gray-700'}
-                    `}
-                    onClick={() => {
-                      if (!option.disabled) {
-                        handleSelect(option.value);
-                      }
-                    }}
-                  >
-                    {option.icon && (
-                      <option.icon className="w-4 h-4 mr-3" />
-                    )}
-                    <span className="flex-1">{option.label}</span>
-                    {option.value === value && (
-                      <Check className="w-4 h-4 text-blue-600" />
-                    )}
-                  </div>
-                ))}
-                
-                {filteredOptions.length === 0 && (
-                  <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                {filteredOptions.length > 0 ? (
+                  filteredOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => handleSelect(option.value)}
+                      className={`
+                        w-full text-left px-3 py-2 flex items-center space-x-2 hover:bg-gray-50 transition-colors
+                        ${value === option.value ? 'bg-green-50 text-green-700' : 'text-gray-900'}
+                      `}
+                    >
+                      {option.icon && (
+                        <option.icon className="w-4 h-4" />
+                      )}
+                      <span>{option.label}</span>
+                      {value === option.value && (
+                        <CheckCircle className="w-4 h-4 ml-auto text-green-600" />
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
                     No options found
                   </div>
                 )}
@@ -357,204 +344,275 @@ export const EnhancedSelect: React.FC<EnhancedSelectProps> = ({
           )}
         </AnimatePresence>
       </div>
-
-      {/* Error Message */}
-      <AnimatePresence>
-        {hasError && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex items-center space-x-2 text-red-600 text-sm"
-          >
-            <AlertCircle className="w-4 h-4" />
-            <span>{error}</span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="form-error"
+        >
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </motion.div>
+      )}
     </div>
   );
 };
 
-// Enhanced Textarea Component
-interface EnhancedTextareaProps {
-  label: string;
+// Enhanced TextArea Component
+interface EnhancedTextAreaProps {
+  label?: string;
   placeholder?: string;
-  value: string;
-  onChange: (value: string) => void;
-  error?: string;
+  value?: string;
+  onChange?: (value: string) => void;
   disabled?: boolean;
+  error?: string;
+  success?: string;
+  hint?: string;
   required?: boolean;
   rows?: number;
   maxLength?: number;
+  onValidate?: (value: string) => string | undefined;
   className?: string;
-  hint?: string;
 }
 
-export const EnhancedTextarea: React.FC<EnhancedTextareaProps> = ({
+export const EnhancedTextArea: React.FC<EnhancedTextAreaProps> = ({
   label,
   placeholder,
-  value,
+  value = '',
   onChange,
-  error,
   disabled = false,
+  error,
+  success,
+  hint,
   required = false,
   rows = 4,
   maxLength,
-  className = '',
-  hint
+  onValidate,
+  className = ''
 }) => {
-  const [isFocused, setIsFocused] = useState(false);
-  const hasError = Boolean(error);
+  const [focused, setFocused] = useState(false);
+  const [touched, setTouched] = useState(false);
+  const [localError, setLocalError] = useState<string>();
+
+  const currentError = error || localError;
+  const hasError = Boolean(currentError);
+  const hasSuccess = Boolean(success) && !hasError;
+  const characterCount = value.length;
+  const isNearLimit = maxLength && characterCount > maxLength * 0.8;
+  const isOverLimit = maxLength && characterCount > maxLength;
+
+  useEffect(() => {
+    if (onValidate && value && touched) {
+      const validationError = onValidate(value);
+      setLocalError(validationError);
+    }
+  }, [value, onValidate, touched]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (maxLength && newValue.length > maxLength) {
+      return;
+    }
+    
+    onChange?.(newValue);
+    
+    if (onValidate && touched) {
+      const validationError = onValidate(newValue);
+      setLocalError(validationError);
+    }
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    setTouched(true);
+    
+    if (onValidate && value) {
+      const validationError = onValidate(value);
+      setLocalError(validationError);
+    }
+  };
 
   return (
     <div className={`space-y-2 ${className}`}>
-      {/* Label */}
-      <label className="block text-sm font-semibold text-gray-700">
-        {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-
-      {/* Textarea Container */}
-      <div className="relative">
-        <textarea
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          disabled={disabled}
-          required={required}
-          rows={rows}
-          maxLength={maxLength}
-          className={`
-            w-full py-3 px-4 text-sm rounded-xl border-2 transition-all duration-200 resize-none
-            ${hasError 
-              ? 'border-red-300 bg-red-50' 
-              : isFocused 
-                ? 'border-blue-300 bg-blue-50' 
-                : 'border-gray-200 bg-white hover:border-gray-300'
-            }
-            ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-            focus:outline-none placeholder-gray-400
-          `}
-        />
-
-        {/* Character Count */}
-        {maxLength && (
-          <div className="absolute right-3 bottom-3 text-xs text-gray-400">
-            {value.length}/{maxLength}
-          </div>
-        )}
-      </div>
-
-      {/* Error Message */}
+      {label && (
+        <div className="flex justify-between items-center">
+          <label className="form-label">
+            {label}
+            {required && <span className="text-red-500 ml-1">*</span>}
+          </label>
+          {maxLength && (
+            <span className={`text-xs ${
+              isOverLimit ? 'text-red-500' : 
+              isNearLimit ? 'text-amber-500' : 
+              'text-gray-500'
+            }`}>
+              {characterCount}/{maxLength}
+            </span>
+          )}
+        </div>
+      )}
+      
+      <textarea
+        value={value}
+        onChange={handleChange}
+        onFocus={() => setFocused(true)}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        disabled={disabled}
+        required={required}
+        rows={rows}
+        className={`
+          form-input
+          resize-vertical
+          ${hasError ? 'form-input-error' : ''}
+          ${hasSuccess ? 'border-green-500 focus:border-green-600' : ''}
+          ${focused ? 'ring-2' : ''}
+          transition-all duration-200
+        `.trim()}
+      />
+      
+      {/* Messages */}
       <AnimatePresence>
-        {hasError && (
+        {currentError && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="flex items-center space-x-2 text-red-600 text-sm"
+            className="form-error"
           >
             <AlertCircle className="w-4 h-4" />
-            <span>{error}</span>
+            {currentError}
           </motion.div>
         )}
+        
+        {success && !hasError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="text-green-600 text-xs flex items-center gap-1"
+          >
+            <CheckCircle className="w-4 h-4" />
+            {success}
+          </motion.div>
+        )}
+        
+        {hint && !hasError && !success && (
+          <p className="text-gray-500 text-xs flex items-center gap-1">
+            <Info className="w-4 h-4" />
+            {hint}
+          </p>
+        )}
       </AnimatePresence>
+    </div>
+  );
+};
 
-      {/* Hint */}
-      {hint && !hasError && (
-        <div className="flex items-center space-x-2 text-gray-500 text-sm">
-          <Info className="w-4 h-4" />
-          <span>{hint}</span>
-        </div>
+// Enhanced Date Input Component
+interface EnhancedDateInputProps {
+  label?: string;
+  value?: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
+  error?: string;
+  required?: boolean;
+  minDate?: string;
+  maxDate?: string;
+  className?: string;
+}
+
+export const EnhancedDateInput: React.FC<EnhancedDateInputProps> = ({
+  label,
+  value,
+  onChange,
+  disabled = false,
+  error,
+  required = false,
+  minDate,
+  maxDate,
+  className = ''
+}) => {
+  const [focused, setFocused] = useState(false);
+
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {label && (
+        <label className="form-label">
+          {label}
+          {required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+      )}
+      
+      <div className="relative">
+        <Calendar className={`absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 ${focused ? 'text-green-500' : 'text-gray-400'} transition-colors`} />
+        
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => onChange?.(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          disabled={disabled}
+          required={required}
+          min={minDate}
+          max={maxDate}
+          className={`
+            form-input pl-10
+            ${error ? 'form-input-error' : ''}
+            ${focused ? 'ring-2' : ''}
+            transition-all duration-200
+          `.trim()}
+        />
+      </div>
+      
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="form-error"
+        >
+          <AlertCircle className="w-4 h-4" />
+          {error}
+        </motion.div>
       )}
     </div>
   );
 };
 
-// Enhanced Button Component
-interface EnhancedButtonProps {
-  children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
-  onClick?: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  type?: 'button' | 'submit' | 'reset';
-  icon?: React.ComponentType<{ className?: string }>;
-  className?: string;
-}
-
-export const EnhancedButton: React.FC<EnhancedButtonProps> = ({
-  children,
-  variant = 'primary',
-  size = 'md',
-  onClick,
-  disabled = false,
-  loading = false,
-  type = 'button',
-  icon: Icon,
-  className = ''
-}) => {
-  const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-  
-  const variantClasses = {
-    primary: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 focus:ring-blue-500 shadow-lg hover:shadow-xl',
-    secondary: 'bg-gradient-to-r from-gray-500 to-gray-600 text-white hover:from-gray-600 hover:to-gray-700 focus:ring-gray-500 shadow-lg hover:shadow-xl',
-    outline: 'border-2 border-blue-500 text-blue-500 hover:bg-blue-50 focus:ring-blue-500',
-    ghost: 'text-gray-600 hover:bg-gray-100 focus:ring-gray-500',
-    danger: 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 focus:ring-red-500 shadow-lg hover:shadow-xl'
-  };
-
-  const sizeClasses = {
-    sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3 text-base'
-  };
-
-  return (
-    <motion.button
-      whileHover={{ scale: disabled ? 1 : 1.02 }}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
-      type={type}
-      onClick={onClick}
-      disabled={disabled || loading}
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
-    >
-      {loading && (
-        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2" />
-      )}
-      {Icon && !loading && (
-        <Icon className="w-4 h-4 mr-2" />
-      )}
-      {children}
-    </motion.button>
-  );
-};
-
-// Form validation utilities
+// Form Validation Helpers
 export const validators = {
   required: (value: string) => {
-    return value.trim() === '' ? 'This field is required' : undefined;
+    return value.trim() ? undefined : 'This field is required';
   },
   
   email: (value: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return !emailRegex.test(value) ? 'Please enter a valid email address' : undefined;
-  },
-  
-  phone: (value: string) => {
-    const phoneRegex = /^[+]?[\d\s\-\(\)]{10,}$/;
-    return !phoneRegex.test(value) ? 'Please enter a valid phone number' : undefined;
+    return emailRegex.test(value) ? undefined : 'Please enter a valid email address';
   },
   
   minLength: (min: number) => (value: string) => {
-    return value.length < min ? `Must be at least ${min} characters` : undefined;
+    return value.length >= min ? undefined : `Must be at least ${min} characters`;
   },
   
   maxLength: (max: number) => (value: string) => {
-    return value.length > max ? `Must not exceed ${max} characters` : undefined;
+    return value.length <= max ? undefined : `Must be no more than ${max} characters`;
+  },
+  
+  phone: (value: string) => {
+    const phoneRegex = /^[6-9]\d{9}$/;
+    return phoneRegex.test(value) ? undefined : 'Please enter a valid 10-digit mobile number';
+  },
+  
+  password: (value: string) => {
+    if (value.length < 8) return 'Password must be at least 8 characters';
+    if (!/[A-Z]/.test(value)) return 'Password must contain at least one uppercase letter';
+    if (!/[a-z]/.test(value)) return 'Password must contain at least one lowercase letter';
+    if (!/\d/.test(value)) return 'Password must contain at least one number';
+    return undefined;
+  },
+  
+  confirmPassword: (originalPassword: string) => (value: string) => {
+    return value === originalPassword ? undefined : 'Passwords do not match';
   }
-}; 
+};

@@ -1,28 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Create Supabase admin client
+    console.log('Available routes API called');
+    
+    // Initialize Supabase client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase configuration missing');
     }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
-
-    // Fetch all active routes with their stops
-    const { data: routes, error: routesError } = await supabaseAdmin
+    
+    const supabase = createClient(supabaseUrl, supabaseKey);
+    
+    // Fetch active routes with their stops
+    const { data: routes, error: routesError } = await supabase
       .from('routes')
       .select(`
         id,
@@ -32,8 +26,8 @@ export async function GET() {
         end_location,
         departure_time,
         arrival_time,
-        duration,
         distance,
+        duration,
         fare,
         total_capacity,
         current_passengers,
@@ -51,44 +45,74 @@ export async function GET() {
 
     if (routesError) {
       console.error('Error fetching routes:', routesError);
-      return NextResponse.json(
-        { error: 'Failed to fetch routes' },
-        { status: 500 }
-      );
+      throw new Error('Failed to fetch routes from database');
     }
 
-    // Format routes data
-    const formattedRoutes = routes.map(route => ({
-      id: route.id,
-      route_number: route.route_number,
-      route_name: route.route_name,
-      start_location: route.start_location,
-      end_location: route.end_location,
-      departure_time: route.departure_time,
-      arrival_time: route.arrival_time,
-      duration: route.duration,
-      distance: route.distance,
-      fare: route.fare,
-      total_capacity: route.total_capacity,
-      current_passengers: route.current_passengers || 0,
-      status: route.status,
-      route_stops: route.route_stops
-        ? route.route_stops.sort((a: { sequence_order: number }, b: { sequence_order: number }) => a.sequence_order - b.sequence_order)
-        : []
-    }));
+    // Transform the data to match the expected format
+    const transformedRoutes = routes?.map(route => {
+      // Sort stops by sequence order
+      const sortedStops = route.route_stops?.sort((a, b) => a.sequence_order - b.sequence_order) || [];
+      
+      // Calculate available seats
+      const availableSeats = Math.max(0, route.total_capacity - (route.current_passengers || 0));
+      
+      // Format times for display
+      const formatTime = (timeString: string) => {
+        if (!timeString) return '';
+        const time = new Date(`1970-01-01T${timeString}`);
+        return time.toLocaleTimeString('en-US', { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        });
+      };
+
+      return {
+        id: route.id,
+        routeName: route.route_name,
+        routeCode: route.route_number,
+        startPoint: route.start_location,
+        endPoint: route.end_location,
+        distance: `${route.distance} km`,
+        estimatedTime: route.duration || 'N/A',
+        fare: parseFloat(route.fare || '0'),
+        stops: sortedStops.map(stop => ({
+          id: stop.id,
+          name: stop.stop_name,
+          time: formatTime(stop.stop_time),
+          sequence: stop.sequence_order,
+          isMajor: stop.is_major_stop
+        })),
+        schedule: {
+          morning: [formatTime(route.departure_time)],
+          evening: [formatTime(route.arrival_time)]
+        },
+        capacity: route.total_capacity,
+        availableSeats: availableSeats,
+        currentPassengers: route.current_passengers || 0,
+        isActive: route.status === 'active'
+      };
+    }) || [];
+
+    console.log(`✅ Fetched ${transformedRoutes.length} active routes from database`);
 
     return NextResponse.json({
       success: true,
-      routes: formattedRoutes,
-      count: formattedRoutes.length
+      routes: transformedRoutes,
+      totalRoutes: transformedRoutes.length,
+      message: 'Available routes fetched successfully from database'
     });
 
-  } catch (error: unknown) {
-    console.error('Error in available routes API:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
+  } catch (error) {
+    console.error('Available routes API error:', error);
+    
     return NextResponse.json(
-      { error: errorMessage },
+      {
+        success: false,
+        error: 'Failed to fetch available routes',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }
-} 
+}

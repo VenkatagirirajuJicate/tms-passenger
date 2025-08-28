@@ -24,12 +24,19 @@ function validateRazorpayConfig() {
   return { keyId, keySecret };
 }
 
-// Initialize Razorpay instance with validation
-const { keyId, keySecret } = validateRazorpayConfig();
-const razorpay = new Razorpay({
-  key_id: keyId,
-  key_secret: keySecret
-});
+// Initialize Razorpay instance with validation (only in production)
+let razorpay: Razorpay | null = null;
+
+try {
+  const { keyId, keySecret } = validateRazorpayConfig();
+  razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret
+  });
+} catch (error) {
+  console.warn('Razorpay not configured:', error);
+  // Don't throw error during build time
+}
 
 // Razorpay configuration
 export const RAZORPAY_CONFIG = {
@@ -63,6 +70,13 @@ export interface PaymentVerificationData {
 // Create a payment order
 export async function createPaymentOrder(orderData: PaymentOrderData) {
   try {
+    if (!razorpay) {
+      return { 
+        success: false, 
+        error: 'Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables.' 
+      };
+    }
+
     console.log('Creating Razorpay order:', orderData);
     
     const order = await razorpay.orders.create({

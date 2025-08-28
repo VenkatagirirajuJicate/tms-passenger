@@ -73,7 +73,17 @@ export const sessionManager = {
   // Get current student info
   getCurrentStudent() {
     const session = this.getSession();
-    return session?.user?.user_metadata || null;
+    const metadata = session?.user?.user_metadata;
+    if (!metadata) return null;
+    
+    // Return in the format expected by the routes page
+    return {
+      student_id: metadata.student_id,
+      student_name: metadata.student_name,
+      roll_number: metadata.roll_number,
+      email: session.user.email,
+      id: session.user.id
+    };
   },
 
   // Get current driver info

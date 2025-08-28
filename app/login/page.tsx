@@ -1,254 +1,176 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Phone, Lock, Mail, GraduationCap, Calendar } from 'lucide-react';
-import toast from 'react-hot-toast';
-import { studentHelpers, driverHelpers } from '@/lib/supabase';
-import { sessionManager } from '@/lib/session';
-import { isValidEmail, validatePassword, getErrorMessage } from '@/lib/utils';
+import React, { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { GraduationCap, Car, Users, ArrowLeft } from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-context';
 
-type LoginMode = 'regular' | 'first-time';
-type UserRole = 'student' | 'driver';
-type AuthMethod = 'mobile' | 'dob';
+type UserRole = 'passenger' | 'driver';
 
 export default function LoginPage() {
+  const { login, loginDriver, loginDriverDirect, loginDriverOAuth, isAuthenticated, isLoading, error, userType } = useAuth();
   const router = useRouter();
-  const [mode, setMode] = useState<LoginMode>('regular');
-  const [role, setRole] = useState<UserRole>('student');
-  const [authMethod, setAuthMethod] = useState<AuthMethod>('mobile');
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  // Regular login form state
+  const searchParams = useSearchParams();
+  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
+  const [showFallback, setShowFallback] = useState(false);
+  const [fallbackLoading, setFallbackLoading] = useState(false);
+  const [fallbackError, setFallbackError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // First-time login form state
-  const [firstTimeEmail, setFirstTimeEmail] = useState('');
-  const [firstTimeMobile, setFirstTimeMobile] = useState('');
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isMounted, setIsMounted] = useState(false);
-
-  // Ensure component is mounted before rendering forms
+  // Combined useEffect for all initialization and redirect logic
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  // If switching to driver role, force regular login mode
-  useEffect(() => {
-    if (role === 'driver' && mode !== 'regular') {
-      setMode('regular');
+    // Check for direct mode parameter
+    const mode = searchParams?.get('mode');
+    if (mode === 'direct') {
+      setShowFallback(true);
+      setSelectedRole('driver'); // Default to driver for direct mode
     }
-  }, [role, mode]);
-
-  // Validation functions
-  const validateRegularLogin = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!isValidEmail(email)) {
-      newErrors.email = 'Please enter a valid email address';
+    
+    // Check if user is being redirected back from failed OAuth
+    const referrer = typeof document !== 'undefined' ? document.referrer : '';
+    const hasOAuthState = !!sessionStorage.getItem('oauth_state');
+    const isDriverOAuth = sessionStorage.getItem('tms_oauth_role') === 'driver';
+    
+    // If user is coming back from MYJKKN/Google without completing OAuth, auto-trigger workaround
+    if (referrer.includes('jkkn.ac.in') && hasOAuthState && isDriverOAuth) {
+      console.log('🔄 Detected user redirected back from MYJKKN without completing OAuth');
+      console.log('🔄 Auto-triggering OAuth workaround for seamless authentication...');
+      
+      // Automatically redirect to appropriate callback with recovery flag
+      const callbackPath = isDriverOAuth ? '/auth/driver-callback' : '/auth/callback';
+      const callbackUrl = new URL(callbackPath, window.location.origin);
+      callbackUrl.searchParams.append('recovery', isDriverOAuth ? 'driver_redirect' : 'myjkkn_redirect');
+      callbackUrl.searchParams.append('state', sessionStorage.getItem('oauth_state') || '');
+      
+      // Small delay to show user what's happening
+      setTimeout(() => {
+        console.log('🔄 Redirecting to OAuth recovery...');
+        window.location.href = callbackUrl.toString();
+      }, 1000);
+      
+      return; // Don't process other logic
     }
-
-    if (!password.trim()) {
-      newErrors.password = 'Password is required';
+    
+    // Auto-redirect authenticated users
+    if (isAuthenticated && !isLoading) {
+      const redirectPath = userType === 'driver' ? '/driver' : '/dashboard';
+      console.log('✅ Login page: User authenticated, redirecting...', { userType, redirectPath });
+      router.push(redirectPath);
     }
+  }, [isAuthenticated, isLoading, userType, router, searchParams]);
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateFirstTimeLogin = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    if (!firstTimeEmail.trim()) {
-      newErrors.firstTimeEmail = 'Email is required';
-    } else if (!isValidEmail(firstTimeEmail)) {
-      newErrors.firstTimeEmail = 'Please enter a valid email address';
-    }
-
-    // Validate authentication method specific fields
-    if (authMethod === 'mobile') {
-      if (!firstTimeMobile.trim()) {
-        newErrors.firstTimeMobile = 'Mobile number is required';
-      } else if (!/^[6-9]\d{9}$/.test(firstTimeMobile)) {
-        newErrors.firstTimeMobile = 'Please enter a valid 10-digit mobile number';
-      }
-    } else if (authMethod === 'dob') {
-      if (!dateOfBirth.trim()) {
-        newErrors.dateOfBirth = 'Date of birth is required';
-      } else {
-        const dobDate = new Date(dateOfBirth);
-        const today = new Date();
-        const age = today.getFullYear() - dobDate.getFullYear();
-        
-        if (isNaN(dobDate.getTime())) {
-          newErrors.dateOfBirth = 'Please enter a valid date';
-        } else if (dobDate > today) {
-          newErrors.dateOfBirth = 'Date of birth cannot be in the future';
-        } else if (age < 16 || age > 100) {
-          newErrors.dateOfBirth = 'Please enter a valid date of birth';
-        }
-      }
-    }
-
-    if (!newPassword.trim()) {
-      newErrors.newPassword = 'New password is required';
+  const handleLogin = () => {
+    if (selectedRole === 'passenger') {
+      login(); // Passenger OAuth login
     } else {
-      const passwordValidation = validatePassword(newPassword);
-      if (!passwordValidation.isValid) {
-        newErrors.newPassword = passwordValidation.errors[0];
-      }
+      loginDriverOAuth(); // Driver OAuth login
     }
-
-    if (!confirmPassword.trim()) {
-      newErrors.confirmPassword = 'Please confirm your password';
-    } else if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
-  // Handle regular login
-  const handleRegularLogin = async (e: React.FormEvent) => {
+  const handleDriverLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateRegularLogin()) return;
+    setFallbackLoading(true);
+    setFallbackError(null);
 
-    setIsLoading(true);
     try {
-      if (role === 'student') {
-        const { user, session, student } = await studentHelpers.signIn(email, password);
-        sessionManager.setSession({
-          user: user,
-          session: {
-            access_token: session.access_token,
-            expires_at: session.expires_at,
-            refresh_token: session.refresh_token
-          }
-        });
-        toast.success(`Welcome back, ${student.student_name}!`);
-        router.push('/dashboard');
-      } else {
-        const { user, session, driver } = await driverHelpers.signIn(email, password);
-        sessionManager.setSession({
-          user: user,
-          session: {
-            access_token: session.access_token,
-            expires_at: session.expires_at,
-            refresh_token: session.refresh_token
-          }
-        } as any);
-        toast.success(`Welcome, ${driver.name}!`);
+      const success = await loginDriver(email, password);
+      
+      if (success) {
+        console.log('✅ Driver login successful, redirecting to driver dashboard');
         router.push('/driver');
-      }
-    } catch (error: any) {
-      const errorMessage = getErrorMessage(error);
-      
-      if (role === 'student' && errorMessage.includes('first time login')) {
-        toast.error('Please complete your first-time setup using external authentication');
-        setMode('first-time');
-        setFirstTimeEmail(email);
       } else {
-        toast.error(errorMessage);
+        // Error will be set by AuthContext
+        console.log('❌ Driver login failed');
       }
+    } catch (error) {
+      setFallbackError(error instanceof Error ? error.message : 'Login failed');
     } finally {
-      setIsLoading(false);
+      setFallbackLoading(false);
     }
   };
 
-  // Handle first-time login
-  const handleFirstTimeLogin = async (e: React.FormEvent) => {
+  const handleDriverDirectLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateFirstTimeLogin()) return;
+    setFallbackLoading(true);
+    setFallbackError(null);
 
-    setIsLoading(true);
     try {
-      let response;
+      const success = await loginDriverDirect(email, password);
       
-      if (authMethod === 'mobile') {
-        // Mobile number authentication via external API
-        response = await fetch('/api/auth/external-login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: firstTimeEmail,
-            mobile: firstTimeMobile,
-            newPassword
-          }),
-        });
+      if (success) {
+        console.log('✅ Driver direct login successful, redirecting to driver dashboard');
+        router.push('/driver');
       } else {
-        // Date of birth authentication via first-login API
-        response = await fetch('/api/auth/first-login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: firstTimeEmail,
-            dateOfBirth: dateOfBirth,
-            newPassword
-          }),
-        });
+        // Error will be set by AuthContext
+        console.log('❌ Driver direct login failed');
+      }
+    } catch (error) {
+      setFallbackError(error instanceof Error ? error.message : 'Driver direct login failed');
+    } finally {
+      setFallbackLoading(false);
+    }
+  };
+
+  const handleFallbackLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFallbackLoading(true);
+    setFallbackError(null);
+
+    try {
+      const response = await fetch('/api/auth/direct-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          app_id: process.env.NEXT_PUBLIC_APP_ID || 'transport_management_system_menrm674',
+          api_key: process.env.NEXT_PUBLIC_API_KEY || 'app_e20655605d48ebce_cfa1ffe34268949a'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed');
       }
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Authentication failed');
+      
+      // Store tokens and redirect
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('tms_user', JSON.stringify(data.user));
+        localStorage.setItem('tms_token_expires', data.session.expires_at);
+        document.cookie = `tms_access_token=${data.access_token}; path=/; max-age=${data.expires_in}`;
+        if (data.refresh_token) {
+          document.cookie = `tms_refresh_token=${data.refresh_token}; path=/; max-age=${30 * 24 * 3600}`;
+        }
       }
 
-      toast.success(`Welcome to TMS, ${data.student.student_name}! Your account has been set up successfully.`);
-      
-      // Now sign in the user to create a session
-      const { user, session } = await studentHelpers.signIn(firstTimeEmail, newPassword);
-      
-      // Store session using session manager with the correct structure
-      sessionManager.setSession({
-        user: user,
-        session: {
-          access_token: session.access_token,
-          expires_at: session.expires_at,
-          refresh_token: session.refresh_token
-        }
-      });
-      
       router.push('/dashboard');
-    } catch (error: any) {
-      toast.error(getErrorMessage(error));
+    } catch (error) {
+      setFallbackError(error instanceof Error ? error.message : 'Login failed');
     } finally {
-      setIsLoading(false);
+      setFallbackLoading(false);
     }
   };
 
-  const switchMode = (newMode: LoginMode) => {
-    setMode(newMode);
-    setErrors({});
-    // Clear form fields when switching modes
-    if (newMode === 'regular') {
-      setFirstTimeEmail('');
-      setFirstTimeMobile('');
-      setDateOfBirth('');
-      setNewPassword('');
-      setConfirmPassword('');
-      setAuthMethod('mobile'); // Reset to default auth method
-    } else {
-      setEmail('');
-      setPassword('');
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -259,405 +181,252 @@ export default function LoginPage() {
             <GraduationCap className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            {role === 'student' ? 'Student Portal' : 'Driver Portal'}
+            Transport Management System
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            MYJKKN TMS - JKKN College Transport
+            JKKN College Transport Portal
           </p>
         </div>
 
-        {/* Mode Toggle (students only) */}
-        {role === 'student' && (
-          isMounted ? (
-            <div className="flex rounded-lg bg-gray-100 p-1">
-              <button
-                type="button"
-                onClick={() => switchMode('regular')}
-                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                  mode === 'regular'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                Login
-              </button>
-              <button
-                type="button"
-                onClick={() => switchMode('first-time')}
-                className={`flex-1 py-2 px-4 text-sm font-medium rounded-md transition-colors ${
-                  mode === 'first-time'
-                    ? 'bg-white text-blue-600 shadow-sm'
-                    : 'text-gray-600 hover:text-gray-800'
-                }`}
-              >
-                First Time Setup
-              </button>
-            </div>
-          ) : (
-            <div className="flex rounded-lg bg-gray-100 p-1 animate-pulse">
-              <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
-              <div className="flex-1 py-2 px-4 bg-gray-200 rounded-md"></div>
-            </div>
-          )
-        )}
-
-        {/* Role Toggle */}
-        {isMounted && (
-          <div className="bg-white p-2 rounded-lg shadow flex items-center justify-center space-x-2">
-            <button
-              type="button"
-              onClick={() => setRole('student')}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
-                role === 'student' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'
-              }`}
-            >
-              Student
-            </button>
-            <button
-              type="button"
-              onClick={() => setRole('driver')}
-              className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors ${
-                role === 'driver' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:text-gray-900'
-              }`}
-            >
-              Driver
-            </button>
+        {/* Error Display */}
+        {(error || fallbackError) && (
+          <div className="rounded-md bg-red-50 p-4">
+            <div className="text-sm text-red-700">{error || fallbackError}</div>
           </div>
         )}
 
-        {/* Login Forms */}
+        {/* Login Card */}
         <div className="bg-white py-8 px-6 shadow-xl rounded-lg">
-           {isMounted ? (
-            mode === 'regular' ? (
-              // Regular Login Form
-              <form onSubmit={handleRegularLogin} className="space-y-6">
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  {role === 'student' ? 'Student Email' : 'Driver Email'}
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Mail className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className={`block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                      errors.email ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder={role === 'student' ? 'Enter student email' : 'Enter driver email'}
-                  />
+          <div className="space-y-6">
+            {!selectedRole ? (
+              /* Role Selection */
+              <>
+                <div className="text-center">
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    Choose Your Role
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    Select how you want to access the transport portal
+                  </p>
                 </div>
-                {errors.email && (
-                  <p className="mt-1 text-sm text-red-600">{errors.email}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </label>
-                <div className="mt-1 relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Lock className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    id="password"
-                    name="password"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className={`block w-full pl-10 pr-12 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                      errors.password ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="Enter your password"
-                  />
+                
+                <div className="space-y-4">
+                  {/* Passenger Option */}
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setSelectedRole('passenger')}
+                    className="group relative w-full flex items-center p-6 border-2 border-gray-200 rounded-lg hover:border-blue-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 hover:shadow-md"
                   >
-                    {showPassword ? (
-                      <EyeOff className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <Eye className="h-5 w-5 text-gray-400" />
-                    )}
+                    <div className="flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 group-hover:bg-blue-200 transition-colors">
+                      <Users className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div className="ml-4 text-left">
+                      <h4 className="text-lg font-medium text-gray-900">Passenger</h4>
+                      <p className="text-sm text-gray-600">Students and staff members</p>
+                    </div>
+                  </button>
+                  
+                  {/* Driver Option */}
+                  <button
+                    onClick={() => setSelectedRole('driver')}
+                    className="group relative w-full flex items-center p-6 border-2 border-gray-200 rounded-lg hover:border-green-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-all duration-200 hover:shadow-md"
+                  >
+                    <div className="flex items-center justify-center h-12 w-12 rounded-full bg-green-100 group-hover:bg-green-200 transition-colors">
+                      <Car className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div className="ml-4 text-left">
+                      <h4 className="text-lg font-medium text-gray-900">Driver</h4>
+                      <p className="text-sm text-gray-600">Bus drivers and transport staff</p>
+                    </div>
                   </button>
                 </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-red-600">{errors.password}</p>
-                )}
-              </div>
-
-              <div>
+              </>
+            ) : !showFallback ? (
+              /* Authentication Method Selection */
+              <>
+                <div className="flex items-center mb-4">
+                  <button
+                    onClick={() => setSelectedRole(null)}
+                    className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </button>
+                </div>
+                
+                <div className="text-center">
+                  <div className={`mx-auto h-12 w-12 rounded-full flex items-center justify-center mb-4 ${
+                    selectedRole === 'passenger' ? 'bg-blue-100' : 'bg-green-100'
+                  }`}>
+                    {selectedRole === 'passenger' ? (
+                      <Users className={`h-6 w-6 ${selectedRole === 'passenger' ? 'text-blue-600' : 'text-green-600'}`} />
+                    ) : (
+                      <Car className="h-6 w-6 text-green-600" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {selectedRole === 'passenger' ? 'Passenger Login' : 'Driver Login'}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    {selectedRole === 'passenger' 
+                      ? 'Sign in with your MYJKKN account'
+                      : 'Sign in with your MYJKKN account'
+                    }
+                  </p>
+                </div>
+                
                 <button
-                  type="submit"
+                  onClick={handleLogin}
                   disabled={isLoading}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors ${
+                    selectedRole === 'passenger' 
+                      ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500' 
+                      : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                  }`}
                 >
-                  {isLoading ? 'Signing in...' : role === 'student' ? 'Sign in as Student' : 'Sign in as Driver'}
+                  {isLoading ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Connecting...
+                    </div>
+                  ) : (
+                    'Sign in with MYJKKN'
+                  )}
                 </button>
-              </div>
-            </form>
+                
+                <div className="text-center text-xs text-gray-500">
+                  <p>You'll be redirected to MYJKKN for secure authentication</p>
+                </div>
+
+                {/* Alternative login option for both roles */}
+                <div className="text-center border-t pt-4">
+                  <button
+                    onClick={() => setShowFallback(true)}
+                    className={`text-sm underline ${
+                      selectedRole === 'passenger' 
+                        ? 'text-blue-600 hover:text-blue-500'
+                        : 'text-green-600 hover:text-green-500'
+                    }`}
+                  >
+                    {selectedRole === 'passenger' 
+                      ? 'Having trouble? Try alternative login'
+                      : 'Try direct login with enhanced authentication'
+                    }
+                  </button>
+                </div>
+              </>
             ) : (
-              // First-Time Login Form
-              <form onSubmit={handleFirstTimeLogin} className="space-y-6">
-                <div>
-                  <label htmlFor="firstTimeEmail" className="block text-sm font-medium text-gray-700">
-                    Email Address
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Mail className="h-5 w-5 text-gray-400" />
-                    </div>
+              /* Login Form */
+              <>
+                <div className="flex items-center mb-4">
+                  <button
+                    onClick={() => setShowFallback(false)}
+                    className="flex items-center text-gray-500 hover:text-gray-700 transition-colors"
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Back
+                  </button>
+                </div>
+                
+                <div className="text-center">
+                  <div className={`mx-auto h-12 w-12 rounded-full flex items-center justify-center mb-4 ${
+                    selectedRole === 'passenger' ? 'bg-blue-100' : 'bg-green-100'
+                  }`}>
+                    {selectedRole === 'passenger' ? (
+                      <Users className="h-6 w-6 text-blue-600" />
+                    ) : (
+                      <Car className="h-6 w-6 text-green-600" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {selectedRole === 'passenger' ? 'Alternative Login' : 'Direct Driver Login'}
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">
+                    {selectedRole === 'passenger'
+                      ? 'Sign in with your email and password'
+                      : 'Enhanced authentication with parent app integration'
+                    }
+                  </p>
+                </div>
+
+                <form onSubmit={selectedRole === 'driver' ? handleDriverDirectLogin : handleFallbackLogin} className="space-y-4">
+                  <div>
+                    <label htmlFor="email" className="sr-only">
+                      Email address
+                    </label>
                     <input
-                      id="firstTimeEmail"
-                      name="firstTimeEmail"
+                      id="email"
+                      name="email"
                       type="email"
-                      value={firstTimeEmail}
-                      onChange={(e) => setFirstTimeEmail(e.target.value)}
-                      className={`block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.firstTimeEmail ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="Enter your registered email"
+                      autoComplete="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      placeholder="Email address"
                     />
                   </div>
-                  {errors.firstTimeEmail && (
-                    <p className="mt-1 text-sm text-red-600">{errors.firstTimeEmail}</p>
-                  )}
-                </div>
-
-                {/* Authentication Method Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Verification Method
-                  </label>
-                  <div className="flex rounded-lg bg-gray-100 p-1">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMethod('mobile');
-                        setDateOfBirth(''); // Clear DOB when switching to mobile
-                        setErrors({}); // Clear any validation errors
-                      }}
-                      className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors flex items-center justify-center space-x-2 ${
-                        authMethod === 'mobile'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-800'
-                      }`}
-                    >
-                      <Phone className="h-4 w-4" />
-                      <span>Mobile Number</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAuthMethod('dob');
-                        setFirstTimeMobile(''); // Clear mobile when switching to DOB
-                        setErrors({}); // Clear any validation errors
-                      }}
-                      className={`flex-1 py-2 px-3 text-sm font-medium rounded-md transition-colors flex items-center justify-center space-x-2 ${
-                        authMethod === 'dob'
-                          ? 'bg-white text-blue-600 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-800'
-                      }`}
-                    >
-                      <Calendar className="h-4 w-4" />
-                      <span>Date of Birth</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Conditional Authentication Fields */}
-                {authMethod === 'mobile' ? (
                   <div>
-                    <label htmlFor="firstTimeMobile" className="block text-sm font-medium text-gray-700">
-                      Mobile Number
+                    <label htmlFor="password" className="sr-only">
+                      Password
                     </label>
-                    <div className="mt-1 relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="firstTimeMobile"
-                        name="firstTimeMobile"
-                        type="tel"
-                        value={firstTimeMobile}
-                        onChange={(e) => setFirstTimeMobile(e.target.value)}
-                        className={`block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                          errors.firstTimeMobile ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        placeholder="Enter your mobile number"
-                      />
-                    </div>
-                    {errors.firstTimeMobile && (
-                      <p className="mt-1 text-sm text-red-600">{errors.firstTimeMobile}</p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      Enter your mobile number registered in the system
-                    </p>
-                  </div>
-                ) : (
-                  <div>
-                    <label htmlFor="dateOfBirth" className="block text-sm font-medium text-gray-700">
-                      Date of Birth
-                    </label>
-                    <div className="mt-1 relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Calendar className="h-5 w-5 text-gray-400" />
-                      </div>
-                      <input
-                        id="dateOfBirth"
-                        name="dateOfBirth"
-                        type="date"
-                        value={dateOfBirth}
-                        onChange={(e) => setDateOfBirth(e.target.value)}
-                        className={`block w-full pl-10 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                          errors.dateOfBirth ? 'border-red-300' : 'border-gray-300'
-                        }`}
-                        max={new Date().toISOString().split('T')[0]} // Prevent future dates
-                      />
-                    </div>
-                    {errors.dateOfBirth && (
-                      <p className="mt-1 text-sm text-red-600">{errors.dateOfBirth}</p>
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      Enter your date of birth as registered in the system
-                    </p>
-                  </div>
-                )}
-
-                <div>
-                  <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                    New Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
                     <input
-                      id="newPassword"
-                      name="newPassword"
-                      type={showPassword ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      className={`block w-full pl-10 pr-12 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.newPassword ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="Create a strong password"
+                      id="password"
+                      name="password"
+                      type="password"
+                      autoComplete="current-password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                      placeholder="Password"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
                   </div>
-                  {errors.newPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                    Confirm Password
-                  </label>
-                  <div className="mt-1 relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Lock className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      className={`block w-full pl-10 pr-12 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
-                        errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      placeholder="Confirm your password"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <Eye className="h-5 w-5 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
-                  {errors.confirmPassword && (
-                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
-                  )}
-                </div>
-
-                <div>
                   <button
                     type="submit"
-                    disabled={isLoading}
-                    className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={fallbackLoading}
+                    className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      selectedRole === 'passenger'
+                        ? 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                        : 'bg-green-600 hover:bg-green-700 focus:ring-green-500'
+                    }`}
                   >
-                    {isLoading ? 'Setting up account...' : 'Complete Setup'}
+                    {fallbackLoading ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Signing in...
+                      </div>
+                    ) : (
+                      selectedRole === 'passenger' ? 'Sign in as Passenger' : 'Sign in as Driver (Direct)'
+                    )}
                   </button>
-                </div>
-              </form>
-            )
-          ) : (
-            // Loading skeleton for forms
-            <div className="space-y-6">
-              <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-              </div>
-              <div className="animate-pulse">
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-              </div>
-              <div className="h-10 bg-gray-200 rounded animate-pulse"></div>
-            </div>
-          )}
+                </form>
+              </>
+            )}
+          </div>
         </div>
 
         {/* Help Text */}
         <div className="text-center">
-          <div className="text-sm text-gray-600">
-            {mode === 'regular' ? (
-              <p>
-                First time user?{' '}
-                <button
-                  onClick={() => switchMode('first-time')}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Complete your first-time login
-                </button>
-              </p>
-            ) : (
-              <p>
-                Already have an account?{' '}
-                <button
-                  onClick={() => switchMode('regular')}
-                  className="font-medium text-blue-600 hover:text-blue-500"
-                >
-                  Sign in here
-                </button>
-              </p>
-            )}
-          </div>
           <div className="mt-4 text-xs text-gray-500">
             <p>Need help? Contact your transport administrator</p>
+            <p className="mt-1">
+              Don't have a MYJKKN account? Contact the college administration
+            </p>
+            <div className="mt-2 space-x-4">
+              <a
+                href="/auth/diagnostic"
+                className="text-blue-600 hover:text-blue-500 underline"
+              >
+                Authentication Diagnostic
+              </a>
+              <span className="text-gray-300">|</span>
+              <a
+                href="/auth/debug-redirect"
+                className="text-blue-600 hover:text-blue-500 underline"
+              >
+                Redirect Debug
+              </a>
+            </div>
           </div>
         </div>
       </div>
