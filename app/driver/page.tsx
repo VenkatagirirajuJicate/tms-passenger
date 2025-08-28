@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 import { driverHelpers } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { MapPin, Navigation, Settings, Clock } from 'lucide-react';
 import Link from 'next/link';
 
 export default function DriverHomePage() {
+  const { user, isAuthenticated, userType, isLoading } = useAuth();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -16,11 +17,26 @@ export default function DriverHomePage() {
   useEffect(() => {
     const init = async () => {
       try {
-        if (!sessionManager.isAuthenticated() || !sessionManager.getCurrentDriverId()) {
+        // Check if user is authenticated and is a driver
+        if (isLoading) {
+          return; // Wait for auth to load
+        }
+        
+        if (!isAuthenticated || userType !== 'driver') {
+          console.log('❌ Driver access denied:', { isAuthenticated, userType });
           router.replace('/login');
           return;
         }
-        const driverId = sessionManager.getCurrentDriverId() as string;
+        
+        console.log('✅ Driver authenticated:', { user, userType });
+        
+        // Get driver ID from user object
+        const driverId = user?.id;
+        if (!driverId) {
+          setError('Driver ID not found');
+          return;
+        }
+        
         const assignedRoutes = await driverHelpers.getAssignedRoutes(driverId);
         setRoutes(assignedRoutes);
       } catch (err: any) {
@@ -30,16 +46,21 @@ export default function DriverHomePage() {
       }
     };
     init();
-  }, [router]);
+  }, [router, isAuthenticated, userType, isLoading, user]);
 
-  if (loading) return <div>Loading...</div>;
+  if (isLoading || loading) return (
+    <div className="flex flex-col items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-4"></div>
+      <p className="text-muted-foreground">Loading driver dashboard...</p>
+    </div>
+  );
   if (error) return <div className="text-red-600">{error}</div>;
 
-  const currentDriver = sessionManager.getCurrentDriver();
+  const currentDriver = user;
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Welcome, {currentDriver?.driver_name || currentDriver?.name}</h2>
+      <h2 className="text-xl font-semibold">Welcome, {currentDriver?.driver_name || currentDriver?.full_name || currentDriver?.name || 'Driver'}</h2>
       
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
