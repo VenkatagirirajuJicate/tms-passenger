@@ -57,7 +57,13 @@ const DriverLocationPage = () => {
         }
 
         setDriverId(user.id);
-        setDriverName(user.driver_name || user.full_name || user.name || 'Unknown Driver');
+        setDriverName('Unknown Driver');
+        
+        // Debug logging
+        console.log('🔍 [DEBUG] Driver location page - user data:', {
+          userId: user.id,
+          userEmail: user.email
+        });
         
       } catch (error) {
         console.error('Error fetching driver info:', error);
