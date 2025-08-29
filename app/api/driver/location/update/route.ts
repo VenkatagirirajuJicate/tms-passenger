@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const currentTime = new Date().toISOString();
     const locationTimestamp = timestamp ? new Date(timestamp).toISOString() : currentTime;
 
-    // Update driver location - use driverId directly
+    // Update driver location - use the found driver's ID
     const { error: updateError } = await supabase
       .from('drivers')
       .update({
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         last_location_update: currentTime,
         location_tracking_status: 'active'
       })
-      .eq('id', driverId);
+      .eq('id', driver.id);
 
     if (updateError) {
       console.error('Error updating driver location:', updateError);
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
             .insert([{
               tracking_date: trackingDate,
               route_id: routeId,
-              driver_id: driverId,
+              driver_id: driver.id,
               vehicle_id: vehicleId || null,
               latitude,
               longitude,
@@ -193,11 +193,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Get current location for driver
-    const { data: driver, error } = await supabase
+    let { data: driver, error } = await supabase
       .from('drivers')
       .select(`
         id,
         name,
+        email,
         current_latitude,
         current_longitude,
         location_accuracy,
@@ -210,7 +211,36 @@ export async function GET(request: NextRequest) {
       .eq('id', driverId)
       .single();
 
+    // If not found by ID, try to find by email
     if (error || !driver) {
+      const email = searchParams.get('email');
+      if (email) {
+        const { data: driverByEmail, error: emailError } = await supabase
+          .from('drivers')
+          .select(`
+            id,
+            name,
+            email,
+            current_latitude,
+            current_longitude,
+            location_accuracy,
+            location_timestamp,
+            last_location_update,
+            location_sharing_enabled,
+            location_enabled,
+            location_tracking_status
+          `)
+          .eq('email', email)
+          .single();
+
+        if (!emailError && driverByEmail) {
+          driver = driverByEmail;
+          console.log('Found driver by email for location get:', driver.email);
+        }
+      }
+    }
+
+    if (!driver) {
       return NextResponse.json(
         { success: false, error: 'Driver not found' },
         { status: 404 }
