@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Wifi, WifiOff, Clock, Navigation, AlertCircle, RefreshCw } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,11 +35,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   const [updateCount, setUpdateCount] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [nextUpdateTime, setNextUpdateTime] = useState<Date | null>(null);
+  const [timeUntilNext, setTimeUntilNext] = useState<string>('—');
 
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastLocationRef = useRef<LocationData | null>(null);
+  const isUpdatingRef = useRef<boolean>(false);
+  const timeDisplayRef = useRef<NodeJS.Timeout | null>(null);
 
   // Debug logging
   console.log('🔍 [DEBUG] DriverLocationTracker props:', {
@@ -62,6 +66,35 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
+
+  // Update time until next update
+  useEffect(() => {
+    const updateTimeDisplay = () => {
+      if (!nextUpdateTime || !isTracking) {
+        setTimeUntilNext('—');
+        return;
+      }
+
+      const now = new Date();
+      const diff = nextUpdateTime.getTime() - now.getTime();
+      
+      if (diff <= 0) {
+        setTimeUntilNext('Now');
+      } else {
+        const seconds = Math.ceil(diff / 1000);
+        setTimeUntilNext(`${seconds}s`);
+      }
+    };
+
+    updateTimeDisplay();
+    timeDisplayRef.current = setInterval(updateTimeDisplay, 1000);
+
+    return () => {
+      if (timeDisplayRef.current) {
+        clearInterval(timeDisplayRef.current);
+      }
+    };
+  }, [nextUpdateTime, isTracking]);
 
   // Check location permission
   const checkLocationPermission = async () => {
@@ -91,6 +124,131 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       navigator.geolocation.getCurrentPosition(resolve, reject, options);
     });
   };
+
+  // Enhanced location sending with retry mechanism
+  const sendLocationToServer = useCallback(async (locationData: LocationData, isRetry = false) => {
+    // Prevents concurrent updates
+    if (isUpdatingRef.current && !isRetry) {
+      console.log('🔍 [DEBUG] Location update already in progress, skipping...');
+      return false;
+    }
+
+    if (!isOnline) {
+      console.log('🔍 [DEBUG] Offline - location data cached for later sync');
+      return false;
+    }
+
+    isUpdatingRef.current = true;
+
+    try {
+      // Fallback email for testing - remove this once the issue is fixed
+      const fallbackEmail = 'arthanareswaran22@jkkn.ac.in';
+      const effectiveEmail = driverEmail || fallbackEmail;
+      
+      console.log('🔍 [DEBUG] Using email for API call:', effectiveEmail);
+
+      const requestBody = {
+        driverId,
+        email: effectiveEmail,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        accuracy: locationData.accuracy,
+        timestamp: locationData.timestamp
+      };
+
+      console.log('🔍 [DEBUG] Request body:', requestBody);
+
+      const response = await fetch('/api/driver/location/update', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log('🔍 [DEBUG] Response status:', response.status);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔍 [DEBUG] Response data:', data);
+        if (data.success) {
+          setLastUpdateTime(new Date());
+          setUpdateCount(prev => prev + 1);
+          onLocationUpdate?.(locationData);
+          
+          // Set next update time
+          const nextUpdate = new Date(Date.now() + updateInterval);
+          setNextUpdateTime(nextUpdate);
+          
+          console.log('🔍 [DEBUG] Location update successful, next update at:', nextUpdate.toISOString());
+          return true;
+        } else {
+          console.error('Failed to send location to server:', data.error || 'Unknown error');
+          return false;
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        console.error('Failed to send location to server:', response.status, errorData.error || response.statusText);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error sending location to server:', error);
+      return false;
+    } finally {
+      isUpdatingRef.current = false;
+    }
+  }, [driverId, driverEmail, updateInterval, isOnline, onLocationUpdate]);
+
+  // Force location update at intervals
+  const forceLocationUpdate = useCallback(async () => {
+    if (!isTracking || !isEnabled) return;
+
+    console.log('🔍 [DEBUG] Force location update triggered');
+
+    // Try to get fresh location first
+    try {
+      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 0
+        });
+      });
+
+      // Use fresh location data
+      const freshLocationData: LocationData = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        timestamp: position.timestamp
+      };
+
+      console.log('🔍 [DEBUG] Fresh location obtained for interval update:', {
+        latitude: freshLocationData.latitude,
+        longitude: freshLocationData.longitude,
+        accuracy: freshLocationData.accuracy,
+        timestamp: new Date(freshLocationData.timestamp).toISOString()
+      });
+
+      setCurrentLocation(freshLocationData);
+      lastLocationRef.current = freshLocationData;
+      
+      const success = await sendLocationToServer(freshLocationData);
+      if (success) {
+        console.log('🔍 [DEBUG] Interval location update successful');
+      } else {
+        console.log('🔍 [DEBUG] Interval location update failed');
+      }
+    } catch (error) {
+      console.error('🔍 [DEBUG] Failed to get fresh location for interval update:', error);
+      
+      // Fallback to last known location
+      if (lastLocationRef.current) {
+        console.log('🔍 [DEBUG] Using last known location as fallback');
+        await sendLocationToServer(lastLocationRef.current, true);
+      }
+    }
+  }, [isTracking, isEnabled, sendLocationToServer]);
 
   // Start location tracking
   const startTracking = async () => {
@@ -152,50 +310,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         watchOptions
       );
 
-      // Set up periodic updates with optimized settings
-      intervalRef.current = setInterval(async () => {
-        console.log('🔍 [DEBUG] Periodic location update triggered');
-        
-        try {
-          // Try to get a fresh location with optimized settings for interval updates
-          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-            const intervalOptions = {
-              enableHighAccuracy: false, // Use lower accuracy for faster response
-              timeout: 8000, // Shorter timeout for interval updates
-              maximumAge: 120000 // Allow cached position up to 2 minutes old
-            };
-            
-            navigator.geolocation.getCurrentPosition(resolve, reject, intervalOptions);
-          });
-          
-          const locationData: LocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            accuracy: position.coords.accuracy,
-            timestamp: position.timestamp
-          };
-          
-          console.log('🔍 [DEBUG] Fresh location obtained:', {
-            latitude: locationData.latitude,
-            longitude: locationData.longitude,
-            accuracy: locationData.accuracy,
-            timestamp: new Date(locationData.timestamp).toISOString()
-          });
-          
-          setCurrentLocation(locationData);
-          lastLocationRef.current = locationData;
-          await sendLocationToServer(locationData);
-          
-        } catch (error) {
-          console.error('🔍 [DEBUG] Periodic location update failed:', error);
-          
-          // If getting fresh location fails, try to send the last known location
-          if (lastLocationRef.current) {
-            console.log('🔍 [DEBUG] Sending last known location as fallback');
-            await sendLocationToServer(lastLocationRef.current);
-          }
-        }
+      // Set up periodic updates to ensure location is shared at each interval
+      intervalRef.current = setInterval(() => {
+        forceLocationUpdate();
       }, updateInterval);
+
+      // Set initial next update time
+      const nextUpdate = new Date(Date.now() + updateInterval);
+      setNextUpdateTime(nextUpdate);
+      console.log('🔍 [DEBUG] Location tracking started, next update at:', nextUpdate.toISOString());
 
     } catch (error) {
       handleLocationError(error as GeolocationPositionError);
@@ -207,6 +330,8 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     setIsTracking(false);
     setLocationError(null);
     setIsRetrying(false);
+    setNextUpdateTime(null);
+    setTimeUntilNext('—');
 
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
@@ -222,6 +347,13 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       clearTimeout(retryTimeoutRef.current);
       retryTimeoutRef.current = null;
     }
+
+    if (timeDisplayRef.current) {
+      clearInterval(timeDisplayRef.current);
+      timeDisplayRef.current = null;
+    }
+
+    isUpdatingRef.current = false;
   };
 
   // Handle location errors with retry logic
@@ -259,60 +391,6 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     } else if (error.code === error.PERMISSION_DENIED) {
       setIsTracking(false);
       toast.error(errorMessage);
-    }
-  };
-
-  // Send location to server
-  const sendLocationToServer = async (locationData: LocationData) => {
-    if (!isOnline) {
-      console.log('🔍 [DEBUG] Offline - location data cached for later sync');
-      return;
-    }
-
-    // Fallback email for testing - remove this once the issue is fixed
-    const fallbackEmail = 'arthanareswaran22@jkkn.ac.in';
-    const effectiveEmail = driverEmail || fallbackEmail;
-    
-    console.log('🔍 [DEBUG] Using email for API call:', effectiveEmail);
-
-    try {
-      const requestBody = {
-        driverId,
-        email: effectiveEmail,
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
-        accuracy: locationData.accuracy,
-        timestamp: locationData.timestamp
-      };
-
-      console.log('🔍 [DEBUG] Request body:', requestBody);
-
-      const response = await fetch('/api/driver/location/update', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      console.log('🔍 [DEBUG] Response status:', response.status);
-
-      if (response.ok) {
-        const data = await response.json();
-        console.log('🔍 [DEBUG] Response data:', data);
-        if (data.success) {
-          setLastUpdateTime(new Date());
-          setUpdateCount(prev => prev + 1);
-          onLocationUpdate?.(locationData);
-        } else {
-          console.error('Failed to send location to server:', data.error || 'Unknown error');
-        }
-      } else {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        console.error('Failed to send location to server:', response.status, errorData.error || response.statusText);
-      }
-    } catch (error) {
-      console.error('Error sending location to server:', error);
     }
   };
 
@@ -413,6 +491,19 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
               <span className="text-gray-600">Updates:</span>
               <span className="ml-2 font-mono">{updateCount}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Next Update Countdown */}
+      {isTracking && nextUpdateTime && (
+        <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Clock className="w-4 h-4 text-yellow-600" />
+              <span className="text-sm text-yellow-800">Next update in:</span>
+            </div>
+            <span className="font-mono text-sm font-medium text-yellow-800">{timeUntilNext}</span>
           </div>
         </div>
       )}
