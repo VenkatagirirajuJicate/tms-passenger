@@ -13,11 +13,11 @@ interface LocationData {
 
 interface DriverLocationTrackerProps {
   driverId: string;
-  driverName?: string;
-  driverEmail?: string;
-  isEnabled?: boolean;
+  driverName: string;
+  driverEmail: string;
+  isEnabled: boolean;
   updateInterval?: number;
-  settings?: any;
+  settings: any;
   onLocationUpdate?: (location: LocationData) => void;
   onSettingsChange?: (settings: any) => void;
 }
@@ -37,7 +37,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [updateCount, setUpdateCount] = useState(0);
-  const [isOnline, setIsOnline] = useState(true);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [watchId, setWatchId] = useState<number | null>(null);
+
+  // Debug logging
+  console.log('🔍 [DEBUG] DriverLocationTracker props:', {
+    driverId,
+    driverEmail,
+    isEnabled
+  });
 
   const watchIdRef = useRef<number | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -163,24 +171,39 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       return;
     }
 
+    // Debug logging
+    console.log('🔍 [DEBUG] Sending location to server with:', {
+      driverId,
+      driverEmail,
+      latitude: locationData.latitude,
+      longitude: locationData.longitude
+    });
+
     try {
+      const requestBody = {
+        driverId,
+        email: driverEmail,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        accuracy: locationData.accuracy,
+        timestamp: locationData.timestamp
+      };
+
+      console.log('🔍 [DEBUG] Request body:', requestBody);
+
       const response = await fetch('/api/driver/location/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          driverId,
-          email: driverEmail,
-          latitude: locationData.latitude,
-          longitude: locationData.longitude,
-          accuracy: locationData.accuracy,
-          timestamp: locationData.timestamp
-        }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('🔍 [DEBUG] Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
+        console.log('🔍 [DEBUG] Response data:', data);
         if (data.success) {
           setLastUpdateTime(new Date());
           setUpdateCount(prev => prev + 1);
