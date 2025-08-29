@@ -13,16 +13,22 @@ interface LocationData {
 
 interface DriverLocationTrackerProps {
   driverId: string;
-  isEnabled: boolean;
+  driverName?: string;
+  isEnabled?: boolean;
   updateInterval?: number;
+  settings?: any;
   onLocationUpdate?: (location: LocationData) => void;
+  onSettingsChange?: (settings: any) => void;
 }
 
 const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   driverId,
-  isEnabled,
+  driverName,
+  isEnabled = false,
   updateInterval = 30000,
-  onLocationUpdate
+  settings,
+  onLocationUpdate,
+  onSettingsChange
 }) => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [isTracking, setIsTracking] = useState(false);

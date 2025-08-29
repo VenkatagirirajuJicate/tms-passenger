@@ -15,14 +15,16 @@ interface LocationSettings {
 
 interface DriverLocationSettingsProps {
   driverId: string;
+  settings?: LocationSettings;
   onSettingsChange?: (settings: LocationSettings) => void;
 }
 
 const DriverLocationSettings: React.FC<DriverLocationSettingsProps> = ({
   driverId,
+  settings: initialSettings,
   onSettingsChange
 }) => {
-  const [settings, setSettings] = useState<LocationSettings>({
+  const [settings, setSettings] = useState<LocationSettings>(initialSettings || {
     locationSharingEnabled: false,
     locationTrackingEnabled: false,
     updateInterval: 30000, // 30 seconds

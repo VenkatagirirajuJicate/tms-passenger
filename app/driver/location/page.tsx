@@ -195,6 +195,7 @@ const DriverLocationPage = () => {
         </div>
         <div className="p-4">
           <DriverLocationSettings 
+            driverId={driverId}
             settings={settings}
             onSettingsChange={handleSettingsChange}
           />
