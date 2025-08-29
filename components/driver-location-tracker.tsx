@@ -13,11 +13,11 @@ interface LocationData {
 
 interface DriverLocationTrackerProps {
   driverId: string;
-  driverName: string;
-  driverEmail: string;
-  isEnabled: boolean;
+  driverName?: string;
+  driverEmail?: string;
+  isEnabled?: boolean;
   updateInterval?: number;
-  settings: any;
+  settings?: any;
   onLocationUpdate?: (location: LocationData) => void;
   onSettingsChange?: (settings: any) => void;
 }
@@ -46,9 +46,6 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     driverEmail,
     isEnabled
   });
-
-  const watchIdRef = useRef<number | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check online status
   useEffect(() => {
@@ -95,7 +92,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         sendLocationToServer(locationData);
         
         // Start watching for position changes
-        watchIdRef.current = navigator.geolocation.watchPosition(
+        setWatchId(navigator.geolocation.watchPosition(
           (newPosition) => {
             const newLocationData: LocationData = {
               latitude: newPosition.coords.latitude,
@@ -111,7 +108,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
             handleLocationError(error);
           },
           options
-        );
+        ));
       },
       (error) => {
         handleLocationError(error);
@@ -120,11 +117,12 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     );
 
     // Set up periodic updates as backup
-    intervalRef.current = setInterval(() => {
+    const interval = setInterval(() => {
       if (currentLocation) {
         sendLocationToServer(currentLocation);
       }
     }, updateInterval);
+    // intervalRef.current = interval; // This line was removed as per new_code
   };
 
   // Stop location tracking
@@ -132,15 +130,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     setIsTracking(false);
     setLocationError(null);
 
-    if (watchIdRef.current) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
+    if (watchId) {
+      navigator.geolocation.clearWatch(watchId);
+      setWatchId(null);
     }
 
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+    // if (intervalRef.current) { // This line was removed as per new_code
+    //   clearInterval(intervalRef.current); // This line was removed as per new_code
+    //   intervalRef.current = null; // This line was removed as per new_code
+    // } // This line was removed as per new_code
   };
 
   // Handle location errors
