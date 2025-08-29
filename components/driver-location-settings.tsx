@@ -74,6 +74,7 @@ const DriverLocationSettings: React.FC<DriverLocationSettingsProps> = ({
         },
         body: JSON.stringify({
           driverId,
+          email: driverEmail,
           settings: newSettings
         }),
       });

@@ -9,7 +9,7 @@ const supabase = createClient(
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { driverId, settings } = body;
+    const { driverId, settings, email } = body;
 
     if (!driverId || !settings) {
       return NextResponse.json(
@@ -18,14 +18,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if driver exists - use driverId directly since it's already the correct ID
-    const { data: driver, error: driverError } = await supabase
+    // First try to find driver by the provided ID
+    let { data: driver, error: driverError } = await supabase
       .from('drivers')
-      .select('id, name')
+      .select('id, name, email')
       .eq('id', driverId)
       .single();
 
+    // If not found by ID, try to find by email
     if (driverError || !driver) {
+      console.log('Driver not found by ID, trying to find by email...');
+      
+      if (email) {
+        const { data: driverByEmail, error: emailError } = await supabase
+          .from('drivers')
+          .select('id, name, email')
+          .eq('email', email)
+          .single();
+
+        if (!emailError && driverByEmail) {
+          driver = driverByEmail;
+          console.log('Found driver by email for settings update:', driver.email);
+        }
+      }
+    }
+
+    if (!driver) {
       return NextResponse.json(
         { success: false, error: 'Driver not found' },
         { status: 404 }
