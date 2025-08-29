@@ -118,3 +118,4 @@ If deployment fails:
 2. Update environment variables to development URLs
 3. Redeploy with working configuration
 4. Debug issues in development environment first
+
