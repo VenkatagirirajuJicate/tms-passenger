@@ -2,13 +2,14 @@
 
 import React, { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 import { driverHelpers } from '@/lib/supabase';
 import { Users, Calendar, Clock, MapPin } from 'lucide-react';
 
 function BookingsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [bookings, setBookings] = useState<any[]>([]);
@@ -43,12 +44,29 @@ function BookingsContent() {
   };
 
   useEffect(() => {
-    if (!sessionManager.isAuthenticated() || !sessionManager.getCurrentDriverId()) {
+    // Wait for auth to load
+    if (authLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
       router.replace('/login');
       return;
     }
+
+    if (userType !== 'driver') {
+      router.replace('/login');
+      return;
+    }
+
+    if (!user || !user.id) {
+      setError('Driver information not found');
+      setLoading(false);
+      return;
+    }
+
     load(routeId || undefined);
-  }, [routeId, router]);
+  }, [routeId, router, isAuthenticated, userType, user, authLoading]);
 
   const total = useMemo(() => bookings.length, [bookings]);
 

@@ -5,7 +5,7 @@ import { MapPin, Settings, Shield, Clock, Wifi, WifiOff, Navigation } from 'luci
 import DriverLocationTracker from '@/components/driver-location-tracker';
 import DriverLocationSettings from '@/components/driver-location-settings';
 import toast from 'react-hot-toast';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 
 interface LocationSettings {
   locationSharingEnabled: boolean;
@@ -17,6 +17,7 @@ interface LocationSettings {
 }
 
 const DriverLocationPage = () => {
+  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const [driverId, setDriverId] = useState<string>('');
   const [driverName, setDriverName] = useState<string>('');
   const [settings, setSettings] = useState<LocationSettings>({
@@ -32,24 +33,31 @@ const DriverLocationPage = () => {
   useEffect(() => {
     const fetchDriverInfo = async () => {
       try {
-        const session = sessionManager.getSession();
-        
-        if (!session) {
+        // Wait for auth to load
+        if (authLoading) {
+          return;
+        }
+
+        if (!isAuthenticated) {
           toast.error('Please log in to access location settings');
           setIsLoading(false);
           return;
         }
 
-        const currentDriver = sessionManager.getCurrentDriver();
-        
-        if (!currentDriver || !currentDriver.driver_id) {
+        if (userType !== 'driver') {
+          toast.error('Only drivers can access location settings');
+          setIsLoading(false);
+          return;
+        }
+
+        if (!user || !user.id) {
           toast.error('Driver information not found');
           setIsLoading(false);
           return;
         }
 
-        setDriverId(currentDriver.driver_id);
-        setDriverName(currentDriver.driver_name || 'Unknown Driver');
+        setDriverId(user.id);
+        setDriverName(user.driver_name || user.full_name || user.name || 'Unknown Driver');
         
       } catch (error) {
         console.error('Error fetching driver info:', error);
@@ -60,13 +68,13 @@ const DriverLocationPage = () => {
     };
 
     fetchDriverInfo();
-  }, []);
+  }, [isAuthenticated, userType, user, authLoading]);
 
   const handleSettingsChange = (newSettings: LocationSettings) => {
     setSettings(newSettings);
   };
 
-  if (isLoading) {
+  if (authLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -77,12 +85,32 @@ const DriverLocationPage = () => {
     );
   }
 
-  if (!driverId) {
+  if (!isAuthenticated) {
     return (
       <div className="text-center py-8">
         <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
         <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-        <p className="text-gray-600">Please log in as a driver to access location settings.</p>
+        <p className="text-gray-600">Please log in to access location settings.</p>
+      </div>
+    );
+  }
+
+  if (userType !== 'driver') {
+    return (
+      <div className="text-center py-8">
+        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-gray-600">Only drivers can access location settings.</p>
+      </div>
+    );
+  }
+
+  if (!driverId) {
+    return (
+      <div className="text-center py-8">
+        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Driver Information Not Found</h2>
+        <p className="text-gray-600">Unable to retrieve driver information. Please try logging in again.</p>
       </div>
     );
   }

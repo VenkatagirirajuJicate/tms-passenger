@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 import { useRouter } from 'next/navigation';
 import { User, LogOut, Edit, Save, X, Phone, Mail, Shield, Car, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -21,6 +21,7 @@ interface DriverProfile {
 
 export default function DriverProfilePage() {
   const router = useRouter();
+  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +32,24 @@ export default function DriverProfilePage() {
   useEffect(() => {
     const init = async () => {
       try {
-        if (!sessionManager.isAuthenticated() || !sessionManager.getCurrentDriverId()) {
+        // Wait for auth to load
+        if (authLoading) {
+          return;
+        }
+
+        if (!isAuthenticated) {
           router.replace('/login');
+          return;
+        }
+
+        if (userType !== 'driver') {
+          router.replace('/login');
+          return;
+        }
+
+        if (!user || !user.id) {
+          setError('Driver information not found');
+          setLoading(false);
           return;
         }
         
@@ -44,14 +61,13 @@ export default function DriverProfilePage() {
       }
     };
     init();
-  }, [router]);
+  }, [router, isAuthenticated, userType, user, authLoading]);
 
   const loadProfile = async () => {
     try {
-      const driverId = sessionManager.getCurrentDriverId();
-      if (!driverId) throw new Error('Driver ID not found');
+      if (!user || !user.id) throw new Error('Driver ID not found');
 
-      const response = await fetch(`/api/driver/profile?driverId=${driverId}`);
+      const response = await fetch(`/api/driver/profile?driverId=${user.id}`);
       if (!response.ok) throw new Error('Failed to load profile');
       
       const data = await response.json();
@@ -69,14 +85,13 @@ export default function DriverProfilePage() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const driverId = sessionManager.getCurrentDriverId();
-      if (!driverId) throw new Error('Driver ID not found');
+      if (!user || !user.id) throw new Error('Driver ID not found');
 
       const response = await fetch('/api/driver/profile/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          driverId,
+          driverId: user.id,
           ...editForm
         })
       });

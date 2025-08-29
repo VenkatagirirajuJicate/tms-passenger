@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { sessionManager } from '@/lib/session';
+import { useAuth } from '@/lib/auth/auth-context';
 import { driverHelpers } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { MapPin, Clock, Users } from 'lucide-react';
@@ -9,6 +9,7 @@ import Link from 'next/link';
 
 export default function DriverRoutesPage() {
   const router = useRouter();
+  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [routes, setRoutes] = useState<any[]>([]);
@@ -16,12 +17,28 @@ export default function DriverRoutesPage() {
   useEffect(() => {
     const init = async () => {
       try {
-        if (!sessionManager.isAuthenticated() || !sessionManager.getCurrentDriverId()) {
+        // Wait for auth to load
+        if (authLoading) {
+          return;
+        }
+
+        if (!isAuthenticated) {
           router.replace('/login');
           return;
         }
-        const driverId = sessionManager.getCurrentDriverId() as string;
-        const assignedRoutes = await driverHelpers.getAssignedRoutes(driverId);
+
+        if (userType !== 'driver') {
+          router.replace('/login');
+          return;
+        }
+
+        if (!user || !user.id) {
+          setError('Driver information not found');
+          setLoading(false);
+          return;
+        }
+
+        const assignedRoutes = await driverHelpers.getAssignedRoutes(user.id);
         setRoutes(assignedRoutes);
       } catch (err: any) {
         setError(err.message || 'Failed to load routes');
@@ -30,7 +47,7 @@ export default function DriverRoutesPage() {
       }
     };
     init();
-  }, [router]);
+  }, [router, isAuthenticated, userType, user, authLoading]);
 
   if (loading) {
     return (
