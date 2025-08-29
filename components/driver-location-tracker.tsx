@@ -17,9 +17,7 @@ interface DriverLocationTrackerProps {
   driverEmail?: string;
   isEnabled?: boolean;
   updateInterval?: number;
-  settings?: any;
   onLocationUpdate?: (location: LocationData) => void;
-  onSettingsChange?: (settings: any) => void;
 }
 
 const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
@@ -28,9 +26,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   driverEmail,
   isEnabled = false,
   updateInterval = 30000,
-  settings,
-  onLocationUpdate,
-  onSettingsChange
+  onLocationUpdate
 }) => {
   const [currentLocation, setCurrentLocation] = useState<LocationData | null>(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -56,36 +52,11 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     };
   }, []);
 
-  // Check location permission
-  const checkLocationPermission = async () => {
-    if (!navigator.permissions) {
-      return 'granted'; // Assume granted if permissions API not available
-    }
-    
-    try {
-      const permission = await navigator.permissions.query({ name: 'geolocation' });
-      return permission.state;
-    } catch (error) {
-      console.log('🔍 [DEBUG] Permission check failed:', error);
-      return 'granted'; // Assume granted if check fails
-    }
-  };
-
   // Start location tracking
-  const startTracking = async () => {
+  const startTracking = () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation is not supported by this browser');
       toast.error('Location tracking not supported by your browser');
-      return;
-    }
-
-    // Check permission first
-    const permission = await checkLocationPermission();
-    console.log('🔍 [DEBUG] Location permission status:', permission);
-    
-    if (permission === 'denied') {
-      setLocationError('Location permission denied. Please enable location access in your browser settings.');
-      toast.error('Location permission denied');
       return;
     }
 
@@ -166,21 +137,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     
     switch (error.code) {
       case error.PERMISSION_DENIED:
-        errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
+        errorMessage = 'Location permission denied. Please enable location access.';
         break;
       case error.POSITION_UNAVAILABLE:
-        errorMessage = 'Location information unavailable. Please check your GPS signal or try moving to an open area.';
+        errorMessage = 'Location information unavailable.';
         break;
       case error.TIMEOUT:
-        errorMessage = 'Location request timed out. Please check your internet connection and GPS signal.';
+        errorMessage = 'Location request timed out.';
         break;
     }
-
-    console.log('🔍 [DEBUG] Geolocation error:', {
-      code: error.code,
-      message: errorMessage,
-      error: error
-    });
 
     setLocationError(errorMessage);
     toast.error(errorMessage);
@@ -267,19 +232,6 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     if (accuracy <= 50) return 'text-yellow-600';
     return 'text-red-600';
   };
-
-  // Debug logging
-  console.log('🔍 [DEBUG] DriverLocationTracker props:', {
-    driverId,
-    driverEmail,
-    isEnabled
-  });
-
-  // Fallback email for testing - remove this once the issue is fixed
-  const fallbackEmail = 'arthanareswaran22@jkkn.ac.in';
-  const effectiveEmail = driverEmail || fallbackEmail;
-  
-  console.log('🔍 [DEBUG] Using email:', effectiveEmail);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
