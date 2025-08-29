@@ -65,6 +65,11 @@ const DriverLocationPage = () => {
           userEmail: user.email
         });
         
+        // More detailed debug logging
+        console.log('🔍 [DEBUG] Complete user object:', user);
+        console.log('🔍 [DEBUG] User type:', typeof user);
+        console.log('🔍 [DEBUG] User keys:', Object.keys(user || {}));
+        
       } catch (error) {
         console.error('Error fetching driver info:', error);
         toast.error('Failed to load driver information');
