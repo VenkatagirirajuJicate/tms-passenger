@@ -182,6 +182,7 @@ const DriverLocationPage = () => {
           <DriverLocationTracker 
             driverId={driverId}
             driverName={driverName}
+            driverEmail={user?.email}
             settings={settings}
             onSettingsChange={handleSettingsChange}
           />
@@ -196,6 +197,7 @@ const DriverLocationPage = () => {
         <div className="p-4">
           <DriverLocationSettings 
             driverId={driverId}
+            driverEmail={user?.email}
             settings={settings}
             onSettingsChange={handleSettingsChange}
           />

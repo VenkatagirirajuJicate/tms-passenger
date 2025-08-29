@@ -76,12 +76,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get location settings for driver - use driverId directly
-    const { data: driver, error } = await supabase
+    // First try to find driver by the provided ID
+    let { data: driver, error } = await supabase
       .from('drivers')
       .select(`
         id,
         name,
+        email,
         location_sharing_enabled,
         location_enabled,
         location_tracking_status,
@@ -90,7 +91,41 @@ export async function GET(request: NextRequest) {
       .eq('id', driverId)
       .single();
 
+    // If not found by ID, try to find by email from auth context
     if (error || !driver) {
+      console.log('Driver not found by ID, trying to find by email...');
+      
+      // Get the user email from the request headers or cookies
+      const authHeader = request.headers.get('authorization');
+      const cookies = request.headers.get('cookie');
+      
+      // For now, we'll need to get the email from the frontend
+      // This is a temporary solution - in production, you'd want to validate the token
+      const email = searchParams.get('email');
+      
+      if (email) {
+        const { data: driverByEmail, error: emailError } = await supabase
+          .from('drivers')
+          .select(`
+            id,
+            name,
+            email,
+            location_sharing_enabled,
+            location_enabled,
+            location_tracking_status,
+            last_location_update
+          `)
+          .eq('email', email)
+          .single();
+
+        if (!emailError && driverByEmail) {
+          driver = driverByEmail;
+          console.log('Found driver by email:', driver.email);
+        }
+      }
+    }
+
+    if (!driver) {
       return NextResponse.json(
         { success: false, error: 'Driver not found' },
         { status: 404 }

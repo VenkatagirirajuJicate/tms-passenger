@@ -35,13 +35,30 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if driver exists and has location sharing enabled
-    const { data: driver, error: driverError } = await supabase
+    let { data: driver, error: driverError } = await supabase
       .from('drivers')
-      .select('id, location_sharing_enabled, location_enabled, name')
+      .select('id, location_sharing_enabled, location_enabled, name, email')
       .eq('id', driverId)
       .single();
 
+    // If not found by ID, try to find by email
     if (driverError || !driver) {
+      const email = body.email;
+      if (email) {
+        const { data: driverByEmail, error: emailError } = await supabase
+          .from('drivers')
+          .select('id, location_sharing_enabled, location_enabled, name, email')
+          .eq('email', email)
+          .single();
+
+        if (!emailError && driverByEmail) {
+          driver = driverByEmail;
+          console.log('Found driver by email for location update:', driver.email);
+        }
+      }
+    }
+
+    if (!driver) {
       return NextResponse.json(
         { success: false, error: 'Driver not found' },
         { status: 404 }

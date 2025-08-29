@@ -15,12 +15,14 @@ interface LocationSettings {
 
 interface DriverLocationSettingsProps {
   driverId: string;
+  driverEmail?: string;
   settings?: LocationSettings;
   onSettingsChange?: (settings: LocationSettings) => void;
 }
 
 const DriverLocationSettings: React.FC<DriverLocationSettingsProps> = ({
   driverId,
+  driverEmail,
   settings: initialSettings,
   onSettingsChange
 }) => {
@@ -43,7 +45,11 @@ const DriverLocationSettings: React.FC<DriverLocationSettingsProps> = ({
   const loadSettings = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`/api/driver/location/settings?driverId=${driverId}`);
+      const params = new URLSearchParams({ driverId });
+      if (driverEmail) {
+        params.append('email', driverEmail);
+      }
+      const response = await fetch(`/api/driver/location/settings?${params}`);
       
       if (response.ok) {
         const data = await response.json();

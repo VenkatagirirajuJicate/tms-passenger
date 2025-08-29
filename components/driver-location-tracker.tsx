@@ -14,6 +14,7 @@ interface LocationData {
 interface DriverLocationTrackerProps {
   driverId: string;
   driverName?: string;
+  driverEmail?: string;
   isEnabled?: boolean;
   updateInterval?: number;
   settings?: any;
@@ -24,6 +25,7 @@ interface DriverLocationTrackerProps {
 const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   driverId,
   driverName,
+  driverEmail,
   isEnabled = false,
   updateInterval = 30000,
   settings,
@@ -169,6 +171,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         },
         body: JSON.stringify({
           driverId,
+          email: driverEmail,
           latitude: locationData.latitude,
           longitude: locationData.longitude,
           accuracy: locationData.accuracy,
