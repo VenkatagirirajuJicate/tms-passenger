@@ -12,7 +12,8 @@
     "NEXT_PUBLIC_DRIVER_REDIRECT_URI": "https://tms-passenger.vercel.app/auth/driver-callback",
     "NEXT_PUBLIC_AUTH_DEBUG": "true",
     "NEXT_PUBLIC_SUPABASE_URL": "https://gsvbrytleqdxpdfbykqh.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdmJyeXRsZXFkeHBkZmJ5a3FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMTQwMjUsImV4cCI6MjA2NjU5MDAyNX0.jKjqmUM60YEVqOeKx6wxn3VEz63Lf8JTV57gDXg-qjg"
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdmJyeXRsZXFkeHBkZmJ5a3FoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMTQwMjUsImV4cCI6MjA2NjU5MDAyNX0.jKjqmUM60YEVqOeKx6wxn3VEz63Lf8JTV57gDXg-qjg",
+    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdzdmJyeXRsZXFkeHBkZmJ5a3FoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1MTAxNDAyNSwiZXhwIjoyMDY2NTkwMDI1fQ.X22VlUtSKR9zbRbDc3W0Z-xciviyvpcObVWLNMfxKfI"
   },
   "functions": {
     "app/api/**/*.ts": {
