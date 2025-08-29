@@ -56,11 +56,36 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     };
   }, []);
 
+  // Check location permission
+  const checkLocationPermission = async () => {
+    if (!navigator.permissions) {
+      return 'granted'; // Assume granted if permissions API not available
+    }
+    
+    try {
+      const permission = await navigator.permissions.query({ name: 'geolocation' });
+      return permission.state;
+    } catch (error) {
+      console.log('🔍 [DEBUG] Permission check failed:', error);
+      return 'granted'; // Assume granted if check fails
+    }
+  };
+
   // Start location tracking
-  const startTracking = () => {
+  const startTracking = async () => {
     if (!navigator.geolocation) {
       setLocationError('Geolocation is not supported by this browser');
       toast.error('Location tracking not supported by your browser');
+      return;
+    }
+
+    // Check permission first
+    const permission = await checkLocationPermission();
+    console.log('🔍 [DEBUG] Location permission status:', permission);
+    
+    if (permission === 'denied') {
+      setLocationError('Location permission denied. Please enable location access in your browser settings.');
+      toast.error('Location permission denied');
       return;
     }
 
@@ -69,8 +94,8 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
 
     const options = {
       enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 0
+      timeout: 30000, // Increased from 10s to 30s
+      maximumAge: 60000 // Allow cached position up to 1 minute old
     };
 
     // Get initial position
@@ -141,15 +166,21 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     
     switch (error.code) {
       case error.PERMISSION_DENIED:
-        errorMessage = 'Location permission denied. Please enable location access.';
+        errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
         break;
       case error.POSITION_UNAVAILABLE:
-        errorMessage = 'Location information unavailable.';
+        errorMessage = 'Location information unavailable. Please check your GPS signal or try moving to an open area.';
         break;
       case error.TIMEOUT:
-        errorMessage = 'Location request timed out.';
+        errorMessage = 'Location request timed out. Please check your internet connection and GPS signal.';
         break;
     }
+
+    console.log('🔍 [DEBUG] Geolocation error:', {
+      code: error.code,
+      message: errorMessage,
+      error: error
+    });
 
     setLocationError(errorMessage);
     toast.error(errorMessage);
