@@ -79,13 +79,13 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     }
   };
 
-  // Get current position with retry logic
+  // Get current position with optimized timeout settings
   const getCurrentPosition = (): Promise<GeolocationPosition> => {
     return new Promise((resolve, reject) => {
       const options = {
         enableHighAccuracy: true,
-        timeout: 15000, // 15 seconds timeout
-        maximumAge: 30000 // Allow cached position up to 30 seconds old
+        timeout: 10000, // Reduced timeout to 10 seconds for faster response
+        maximumAge: 60000 // Allow cached position up to 1 minute old for better reliability
       };
 
       navigator.geolocation.getCurrentPosition(resolve, reject, options);
@@ -129,8 +129,8 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       // Start watching for position changes
       const watchOptions = {
         enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 30000
+        timeout: 10000, // Reduced timeout
+        maximumAge: 60000 // Allow cached position up to 1 minute old
       };
 
       watchIdRef.current = navigator.geolocation.watchPosition(
@@ -152,13 +152,22 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         watchOptions
       );
 
-      // Set up periodic updates as backup - this ensures fresh location every interval
+      // Set up periodic updates with optimized settings
       intervalRef.current = setInterval(async () => {
         console.log('🔍 [DEBUG] Periodic location update triggered');
         
         try {
-          // Always try to get a fresh location at the specified interval
-          const position = await getCurrentPosition();
+          // Try to get a fresh location with optimized settings for interval updates
+          const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+            const intervalOptions = {
+              enableHighAccuracy: false, // Use lower accuracy for faster response
+              timeout: 8000, // Shorter timeout for interval updates
+              maximumAge: 120000 // Allow cached position up to 2 minutes old
+            };
+            
+            navigator.geolocation.getCurrentPosition(resolve, reject, intervalOptions);
+          });
+          
           const locationData: LocationData = {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
