@@ -4,7 +4,6 @@ import React from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import DriverNavigation from '@/components/driver-navigation';
 
 // Driver layout with authentication protection
 export default function DriverLayout({
@@ -49,11 +48,8 @@ export default function DriverLayout({
   }
 
   return (
-    <div className="driver-layout min-h-screen bg-gray-50">
-      <DriverNavigation />
-      <main className="lg:ml-64 min-h-screen">
-        {children}
-      </main>
+    <div className="driver-layout">
+      {children}
     </div>
   );
 }
