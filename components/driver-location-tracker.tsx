@@ -84,7 +84,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     return new Promise((resolve, reject) => {
       const options = {
         enableHighAccuracy: true,
-        timeout: 15000, // Reduced timeout to 15 seconds
+        timeout: 15000, // 15 seconds timeout
         maximumAge: 30000 // Allow cached position up to 30 seconds old
       };
 
@@ -152,26 +152,38 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         watchOptions
       );
 
-      // Set up periodic updates as backup
+      // Set up periodic updates as backup - this ensures fresh location every interval
       intervalRef.current = setInterval(async () => {
-        if (lastLocationRef.current) {
-          console.log('🔍 [DEBUG] Periodic location update');
-          await sendLocationToServer(lastLocationRef.current);
-        } else {
-          // If no location available, try to get a new one
-          try {
-            const position = await getCurrentPosition();
-            const locationData: LocationData = {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
-              accuracy: position.coords.accuracy,
-              timestamp: position.timestamp
-            };
-            setCurrentLocation(locationData);
-            lastLocationRef.current = locationData;
-            await sendLocationToServer(locationData);
-          } catch (error) {
-            console.error('🔍 [DEBUG] Periodic location update failed:', error);
+        console.log('🔍 [DEBUG] Periodic location update triggered');
+        
+        try {
+          // Always try to get a fresh location at the specified interval
+          const position = await getCurrentPosition();
+          const locationData: LocationData = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+            timestamp: position.timestamp
+          };
+          
+          console.log('🔍 [DEBUG] Fresh location obtained:', {
+            latitude: locationData.latitude,
+            longitude: locationData.longitude,
+            accuracy: locationData.accuracy,
+            timestamp: new Date(locationData.timestamp).toISOString()
+          });
+          
+          setCurrentLocation(locationData);
+          lastLocationRef.current = locationData;
+          await sendLocationToServer(locationData);
+          
+        } catch (error) {
+          console.error('🔍 [DEBUG] Periodic location update failed:', error);
+          
+          // If getting fresh location fails, try to send the last known location
+          if (lastLocationRef.current) {
+            console.log('🔍 [DEBUG] Sending last known location as fallback');
+            await sendLocationToServer(lastLocationRef.current);
           }
         }
       }, updateInterval);
