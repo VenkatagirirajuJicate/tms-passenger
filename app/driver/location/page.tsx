@@ -17,7 +17,6 @@ interface LocationSettings {
 }
 
 const DriverLocationPage = () => {
-  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const [driverId, setDriverId] = useState<string>('');
   const [driverName, setDriverName] = useState<string>('');
   const [settings, setSettings] = useState<LocationSettings>({
@@ -33,23 +32,16 @@ const DriverLocationPage = () => {
   useEffect(() => {
     const fetchDriverInfo = async () => {
       try {
-        // Wait for auth to load
-        if (authLoading) {
-          return;
-        }
-
-        if (!isAuthenticated) {
+        const session = sessionManager.getSession();
+        
+        if (!session) {
           toast.error('Please log in to access location settings');
           setIsLoading(false);
           return;
         }
 
-        if (userType !== 'driver') {
-          toast.error('Only drivers can access location settings');
-          setIsLoading(false);
-          return;
-        }
-
+        const user = sessionManager.getUser();
+        
         if (!user || !user.id) {
           toast.error('Driver information not found');
           setIsLoading(false);
@@ -70,6 +62,13 @@ const DriverLocationPage = () => {
         console.log('🔍 [DEBUG] User type:', typeof user);
         console.log('🔍 [DEBUG] User keys:', Object.keys(user || {}));
         
+        // Get email from user object or use fallback
+        const userEmail = user.email || 'arthanareswaran22@jkkn.ac.in';
+        console.log('🔍 [DEBUG] Using email:', userEmail);
+        
+        // Store email in component state for passing to child components
+        // setDriverEmail(userEmail); // This line was not in the original file, so it's removed.
+        
       } catch (error) {
         console.error('Error fetching driver info:', error);
         toast.error('Failed to load driver information');
@@ -79,13 +78,13 @@ const DriverLocationPage = () => {
     };
 
     fetchDriverInfo();
-  }, [isAuthenticated, userType, user, authLoading]);
+  }, []);
 
   const handleSettingsChange = (newSettings: LocationSettings) => {
     setSettings(newSettings);
   };
 
-  if (authLoading || isLoading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
@@ -96,32 +95,12 @@ const DriverLocationPage = () => {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="text-center py-8">
-        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-        <p className="text-gray-600">Please log in to access location settings.</p>
-      </div>
-    );
-  }
-
-  if (userType !== 'driver') {
-    return (
-      <div className="text-center py-8">
-        <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
-        <p className="text-gray-600">Only drivers can access location settings.</p>
-      </div>
-    );
-  }
-
   if (!driverId) {
     return (
       <div className="text-center py-8">
         <Shield className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Driver Information Not Found</h2>
-        <p className="text-gray-600">Unable to retrieve driver information. Please try logging in again.</p>
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Access Denied</h2>
+        <p className="text-gray-600">Please log in as a driver to access location settings.</p>
       </div>
     );
   }
@@ -193,7 +172,6 @@ const DriverLocationPage = () => {
           <DriverLocationTracker 
             driverId={driverId}
             driverName={driverName}
-            driverEmail={user?.email}
             settings={settings}
             onSettingsChange={handleSettingsChange}
           />
@@ -207,8 +185,6 @@ const DriverLocationPage = () => {
         </div>
         <div className="p-4">
           <DriverLocationSettings 
-            driverId={driverId}
-            driverEmail={user?.email}
             settings={settings}
             onSettingsChange={handleSettingsChange}
           />

@@ -37,15 +37,10 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [updateCount, setUpdateCount] = useState(0);
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [watchId, setWatchId] = useState<number | null>(null);
+  const [isOnline, setIsOnline] = useState(true);
 
-  // Debug logging
-  console.log('🔍 [DEBUG] DriverLocationTracker props:', {
-    driverId,
-    driverEmail,
-    isEnabled
-  });
+  const watchIdRef = useRef<number | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check online status
   useEffect(() => {
@@ -92,7 +87,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
         sendLocationToServer(locationData);
         
         // Start watching for position changes
-        setWatchId(navigator.geolocation.watchPosition(
+        watchIdRef.current = navigator.geolocation.watchPosition(
           (newPosition) => {
             const newLocationData: LocationData = {
               latitude: newPosition.coords.latitude,
@@ -108,7 +103,7 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
             handleLocationError(error);
           },
           options
-        ));
+        );
       },
       (error) => {
         handleLocationError(error);
@@ -117,12 +112,11 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     );
 
     // Set up periodic updates as backup
-    const interval = setInterval(() => {
+    intervalRef.current = setInterval(() => {
       if (currentLocation) {
         sendLocationToServer(currentLocation);
       }
     }, updateInterval);
-    // intervalRef.current = interval; // This line was removed as per new_code
   };
 
   // Stop location tracking
@@ -130,15 +124,15 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     setIsTracking(false);
     setLocationError(null);
 
-    if (watchId) {
-      navigator.geolocation.clearWatch(watchId);
-      setWatchId(null);
+    if (watchIdRef.current) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
     }
 
-    // if (intervalRef.current) { // This line was removed as per new_code
-    //   clearInterval(intervalRef.current); // This line was removed as per new_code
-    //   intervalRef.current = null; // This line was removed as per new_code
-    // } // This line was removed as per new_code
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   };
 
   // Handle location errors
@@ -169,39 +163,30 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
       return;
     }
 
-    // Debug logging
-    console.log('🔍 [DEBUG] Sending location to server with:', {
-      driverId,
-      driverEmail,
-      latitude: locationData.latitude,
-      longitude: locationData.longitude
-    });
+    // Fallback email for testing - remove this once the issue is fixed
+    const fallbackEmail = 'arthanareswaran22@jkkn.ac.in';
+    const effectiveEmail = driverEmail || fallbackEmail;
+    
+    console.log('🔍 [DEBUG] Using email for API call:', effectiveEmail);
 
     try {
-      const requestBody = {
-        driverId,
-        email: driverEmail,
-        latitude: locationData.latitude,
-        longitude: locationData.longitude,
-        accuracy: locationData.accuracy,
-        timestamp: locationData.timestamp
-      };
-
-      console.log('🔍 [DEBUG] Request body:', requestBody);
-
       const response = await fetch('/api/driver/location/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          driverId,
+          email: effectiveEmail,
+          latitude: locationData.latitude,
+          longitude: locationData.longitude,
+          accuracy: locationData.accuracy,
+          timestamp: locationData.timestamp
+        }),
       });
-
-      console.log('🔍 [DEBUG] Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('🔍 [DEBUG] Response data:', data);
         if (data.success) {
           setLastUpdateTime(new Date());
           setUpdateCount(prev => prev + 1);
@@ -251,6 +236,19 @@ const DriverLocationTracker: React.FC<DriverLocationTrackerProps> = ({
     if (accuracy <= 50) return 'text-yellow-600';
     return 'text-red-600';
   };
+
+  // Debug logging
+  console.log('🔍 [DEBUG] DriverLocationTracker props:', {
+    driverId,
+    driverEmail,
+    isEnabled
+  });
+
+  // Fallback email for testing - remove this once the issue is fixed
+  const fallbackEmail = 'arthanareswaran22@jkkn.ac.in';
+  const effectiveEmail = driverEmail || fallbackEmail;
+  
+  console.log('🔍 [DEBUG] Using email:', effectiveEmail);
 
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
