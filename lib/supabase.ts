@@ -2250,8 +2250,13 @@ export const driverHelpers = {
   },
 
   // Get routes assigned to driver
-  async getAssignedRoutes(driverId: string) {
-    const res = await fetch(`/api/driver/routes?driverId=${encodeURIComponent(driverId)}`);
+  async getAssignedRoutes(driverId: string, email?: string) {
+    const searchParams = new URLSearchParams();
+    searchParams.set('driverId', driverId);
+    if (email) {
+      searchParams.set('email', email);
+    }
+    const res = await fetch(`/api/driver/routes?${searchParams.toString()}`);
     if (!res.ok) throw new Error(await res.text());
     const json = await res.json();
     return json.routes || [];

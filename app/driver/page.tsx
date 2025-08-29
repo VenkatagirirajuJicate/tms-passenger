@@ -40,7 +40,7 @@ export default function DriverHomePage() {
         
         // Load assigned routes
         setRoutesLoading(true);
-        const assignedRoutes = await driverHelpers.getAssignedRoutes(driverId);
+        const assignedRoutes = await driverHelpers.getAssignedRoutes(driverId, user?.email);
         setRoutes(assignedRoutes);
         console.log('✅ Routes loaded:', assignedRoutes);
       } catch (err: any) {
@@ -80,7 +80,7 @@ export default function DriverHomePage() {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">Welcome, {currentDriver?.driver_name || currentDriver?.full_name || currentDriver?.name || 'Driver'}</h2>
+      <h2 className="text-xl font-semibold">Welcome, {currentDriver?.email || 'Driver'}</h2>
       
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
