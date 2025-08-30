@@ -334,12 +334,6 @@ function CallbackContent() {
           <div className='text-red-500 text-6xl mb-4'>❌</div>
           <h1 className='text-2xl font-bold text-foreground mb-4'>Authentication Error</h1>
           <p className='text-muted-foreground mb-6'>{error}</p>
-          <button
-            onClick={() => window.location.href = '/login'}
-            className='bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90 transition-colors'
-          >
-            Return to Login
-          </button>
         </div>
       </div>
     );
