@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/lib/auth/auth-context';
 import { GraduationCap, Car, AlertTriangle } from 'lucide-react';
 
@@ -12,11 +12,21 @@ interface StudentRouteGuardProps {
 export default function StudentRouteGuard({ children }: StudentRouteGuardProps) {
   const { user, isAuthenticated, userType, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
+
+    // Skip protection for driver routes and auth pages
+    if (pathname?.startsWith('/driver') || 
+        pathname?.startsWith('/auth') || 
+        pathname?.startsWith('/no-oauth') ||
+        pathname === '/login') {
+      setIsAuthorized(true);
+      return;
+    }
 
     // Check if user is authenticated
     if (!isAuthenticated) {
@@ -59,7 +69,7 @@ export default function StudentRouteGuard({ children }: StudentRouteGuardProps) 
     // All checks passed
     setIsAuthorized(true);
     setAuthError(null);
-  }, [isAuthenticated, userType, isLoading, user, router]);
+  }, [isAuthenticated, userType, isLoading, user, router, pathname]);
 
   if (isLoading) {
     return (

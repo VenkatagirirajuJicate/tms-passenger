@@ -19,6 +19,18 @@ export default function Home() {
       currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
     });
 
+    // IMMEDIATE CHECK for driver cookies - redirect drivers before auth context loads
+    if (typeof window !== 'undefined') {
+      const driverUser = localStorage.getItem('tms_driver_user');
+      const driverSession = localStorage.getItem('tms_driver_session');
+      
+      if (driverUser && driverSession) {
+        console.log('🚗 Home page: Driver cookies detected, immediately redirecting to driver app');
+        router.replace('/driver');
+        return;
+      }
+    }
+
     // Add a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       if (isLoading) {
@@ -31,14 +43,23 @@ export default function Home() {
       clearTimeout(timeout);
       
       if (isAuthenticated && user) {
-        // Use the userType from AuthContext for accurate routing
-        const redirectPath = userType === 'driver' ? '/driver' : '/dashboard';
-        console.log('🔄 Home page: Redirecting authenticated user...', {
-          userType,
-          redirectPath,
-          email: user.email
-        });
-        router.replace(redirectPath);
+        // IMMEDIATE REDIRECT for drivers - no delay
+        if (userType === 'driver') {
+          console.log('🚗 Home page: Driver detected, immediately redirecting to driver app');
+          router.replace('/driver');
+          return;
+        }
+        
+        // For passengers/students, redirect to dashboard
+        if (userType === 'passenger') {
+          console.log('🔄 Home page: Passenger authenticated, redirecting to dashboard');
+          router.replace('/dashboard');
+          return;
+        }
+        
+        // Fallback for other user types
+        console.log('🔄 Home page: User authenticated, redirecting to dashboard');
+        router.replace('/dashboard');
       } else {
         // Not authenticated, redirect to login
         // But check if we're already on a login page to avoid redirect loops

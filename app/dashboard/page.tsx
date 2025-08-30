@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import { studentHelpers } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/auth-context';
-import StudentRouteGuard from '@/components/student-route-guard';
 import EnrollmentDashboard from '@/components/enrollment-dashboard';
 import EnhancedPassengerDashboard from '@/components/enhanced-passenger-dashboard';
 import PaymentStatusBadge from '@/components/payment-status-badge';
@@ -33,14 +32,6 @@ import {
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
-  return (
-    <StudentRouteGuard>
-      <DashboardContent />
-    </StudentRouteGuard>
-  );
-}
-
-function DashboardContent() {
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const enrollmentStatus = useEnrollmentStatus();
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
