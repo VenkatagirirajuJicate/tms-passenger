@@ -53,6 +53,13 @@ export default function LoginPage() {
     
     // Auto-redirect authenticated users
     if (isAuthenticated && !isLoading) {
+      // If user is a driver, redirect them to driver app instead of student dashboard
+      if (userType === 'driver') {
+        console.log('🚗 Driver detected on student login page, redirecting to driver app');
+        router.push('/driver');
+        return;
+      }
+      
       const redirectPath = userType === 'driver' ? '/driver' : '/dashboard';
       console.log('✅ Login page: User authenticated, redirecting...', { userType, redirectPath });
       router.push(redirectPath);
