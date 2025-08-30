@@ -109,10 +109,21 @@ export default function RoutesPage() {
         hasRoute: !!routeData.route,
         routeId: routeData.route?.id,
         routeNumber: routeData.route?.routeNumber,
+        startLocation: routeData.route?.startLocation,
+        endLocation: routeData.route?.endLocation,
         hasDriver: !!routeData.driver,
         driverInfo: routeData.driver,
         studentId: currentStudent.student_id
       });
+      
+      // Additional debugging for route locations
+      if (routeData.route) {
+        console.log('🔍 ROUTE LOCATION DEBUG:');
+        console.log('   - startLocation:', routeData.route.startLocation);
+        console.log('   - endLocation:', routeData.route.endLocation);
+        console.log('   - routeName:', routeData.route.routeName);
+        console.log('   - routeNumber:', routeData.route.routeNumber);
+      }
       
       if (routeData.route) {
         setRoute(routeData.route);

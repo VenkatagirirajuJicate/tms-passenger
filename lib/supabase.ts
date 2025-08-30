@@ -1188,6 +1188,14 @@ export const studentHelpers = {
         }
       }
 
+      // Debug: Log the route data before returning
+      console.log('🔍 ROUTE DATA DEBUG in getStudentRouteAllocationFormatted:');
+      console.log('   - Raw route data:', allocationData.route);
+      console.log('   - startLocation:', allocationData.route.startLocation);
+      console.log('   - endLocation:', allocationData.route.endLocation);
+      console.log('   - routeName:', allocationData.route.routeName);
+      console.log('   - routeNumber:', allocationData.route.routeNumber);
+
       // Format the response to match component expectations
       return {
         route: {
