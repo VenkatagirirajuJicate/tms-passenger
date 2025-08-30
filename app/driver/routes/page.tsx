@@ -38,7 +38,9 @@ export default function DriverRoutesPage() {
           return;
         }
 
-        const assignedRoutes = await driverHelpers.getAssignedRoutes(user.id);
+        // Pass both driverId and email to ensure the API can find routes
+        const assignedRoutes = await driverHelpers.getAssignedRoutes(user.id, user.email);
+        console.log('Fetched routes:', assignedRoutes);
         setRoutes(assignedRoutes);
       } catch (err: any) {
         setError(err.message || 'Failed to load routes');

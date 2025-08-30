@@ -59,21 +59,28 @@ class UnifiedAuthService {
   }
 
   /**
-   * Determine if user is a driver based on various criteria
+   * Determine if user is a driver based on strict criteria
    */
   isDriver(user: UnifiedUser): boolean {
-    // Check for explicit driver role
+    // Check for explicit driver role - this is the primary check
     if ('role' in user && user.role === 'driver') {
       return true;
     }
 
-    // Check for driver-specific fields
-    if ('driver_name' in user) {
+    // Check if user has driver-specific authentication data
+    // This ensures only users who went through driver auth flow are considered drivers
+    if ('driver_id' in user && user.driver_id) {
       return true;
     }
 
-    // Check for driver metadata
+    // Check for driver metadata from driver auth service
     if ('user_metadata' in user && user.user_metadata?.driver_id) {
+      return true;
+    }
+
+    // Additional safety check: ensure user has driver-specific fields
+    // This prevents passengers from being misidentified as drivers
+    if ('driver_name' in user && user.driver_name && 'role' in user && user.role === 'driver') {
       return true;
     }
 

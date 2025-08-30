@@ -34,6 +34,7 @@ interface AuthContextType {
   hasPermission: (permission: string) => boolean;
   hasRole: (role: string) => boolean;
   hasAnyRole: (roles: string[]) => boolean;
+  isDriverAccessAllowed: (user: UnifiedUser) => boolean;
   handleAuthCallback: (
     token: string,
     refreshToken?: string
@@ -760,6 +761,32 @@ export function AuthProvider({
     return unifiedAuthService.hasAnyRole(roles);
   };
 
+  const isDriverAccessAllowed = (user: UnifiedUser) => {
+    // For the specific user arthanareswaran22@jkkn.ac.in, allow access regardless of role
+    // This is a temporary fix while we determine the correct role from parent app
+    const isTargetDriverUser = user.email === 'arthanareswaran22@jkkn.ac.in';
+    
+    // Validate that the user has driver role or is the target user
+    const hasDriverRole = 
+      isTargetDriverUser || // Allow specific user for testing
+      user.role === 'driver' || 
+      user.role === 'transport_staff' ||
+      user.role === 'staff' ||
+      user.role === 'employee' ||
+      user.role === 'transport_employee' ||
+      user.role === 'transport' ||
+      user.role === 'admin' || // Add admin role
+      user.role === 'faculty' || // Add faculty role
+      user.role === 'teacher' || // Add teacher role
+      (user.permissions && user.permissions.transport_access) ||
+      (typeof user.role === 'string' && user.role.toLowerCase().includes('driver')) ||
+      (typeof user.role === 'string' && user.role.toLowerCase().includes('transport')) ||
+      (typeof user.role === 'string' && user.role.toLowerCase().includes('admin')) ||
+      (typeof user.role === 'string' && user.role.toLowerCase().includes('faculty'));
+
+    return hasDriverRole;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -779,6 +806,7 @@ export function AuthProvider({
         hasPermission,
         hasRole,
         hasAnyRole,
+        isDriverAccessAllowed,
         handleAuthCallback
       }}
     >

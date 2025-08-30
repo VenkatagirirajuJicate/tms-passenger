@@ -45,6 +45,7 @@ import Link from 'next/link';
 import { StudentDashboardData } from '@/types';
 import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
 import { SpendingAnalytics, PaymentTimeline } from '@/components/data-visualization';
+import DriverLocationDisplay from '@/components/driver-location-display';
 
 interface EnhancedPassengerDashboardProps {
   data: StudentDashboardData;
@@ -575,6 +576,24 @@ export default function EnhancedPassengerDashboard({
           </button>
         </motion.div>
       )}
+
+      {/* Driver Location Display */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="space-y-6"
+      >
+        <div className="flex items-center justify-between">
+          <h2 className="text-heading-2">Live Driver Tracking</h2>
+          <div className="flex items-center space-x-3">
+            <Navigation className="w-6 h-6 text-blue-500" />
+            <span className="text-sm text-gray-500">Real-time updates</span>
+          </div>
+        </div>
+        
+        <DriverLocationDisplay />
+      </motion.div>
 
       {/* Analytics Section */}
       {data.analytics && showAnalytics && (

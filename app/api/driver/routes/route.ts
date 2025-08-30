@@ -44,10 +44,10 @@ export async function GET(request: NextRequest) {
           route_stops (id, stop_name, stop_time, sequence_order, is_major_stop)
         `)
         .eq('driver_id', driverId)
-        .eq('status', 'active')
         .order('route_number');
 
       if (!idError && routesWithId && routesWithId.length > 0) {
+        console.log('Routes found with driverId:', routesWithId.length);
         return NextResponse.json({ success: true, routes: routesWithId });
       }
 
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Driver not found' }, { status: 404 });
     }
 
-    // Find active routes assigned to this driver with vehicle information
+    // Find ALL routes assigned to this driver (not just active ones)
     const { data: routes, error } = await supabase
       .from('routes')
       .select(`
@@ -104,7 +104,6 @@ export async function GET(request: NextRequest) {
         route_stops (id, stop_name, stop_time, sequence_order, is_major_stop)
       `)
       .eq('driver_id', effectiveDriverId)
-      .eq('status', 'active')
       .order('route_number');
 
     if (error) {
