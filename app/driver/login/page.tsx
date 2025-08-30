@@ -3,9 +3,11 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Car, Mail, Lock, AlertCircle, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { useAuth } from '@/lib/auth/auth-context';
 
 export default function DriverLoginPage() {
   const router = useRouter();
+  const { loginDriverDirect } = useAuth();
   const [email, setEmail] = useState('arthanareswaran22@jkkn.ac.in');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -20,70 +22,22 @@ export default function DriverLoginPage() {
     setSuccess(null);
 
     try {
-      console.log('🚗 Direct driver login attempt (no OAuth):', { email, hasPassword: !!password });
+      console.log('🚗 Driver login attempt using auth context:', { email, hasPassword: !!password });
 
-      // First, let's check if the driver account exists
-      const checkResponse = await fetch('/api/check-driver', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email })
-      });
-
-      const checkResult = await checkResponse.json();
-      console.log('Driver account check:', checkResult);
-
-      if (!checkResult.exists) {
-        throw new Error('Driver account not found. Please contact administration to create your account.');
-      }
-
-      if (!checkResult.hasPassword) {
-        throw new Error('Driver account exists but password is not set. Please contact administration.');
-      }
-
-      if (!checkResult.isActive) {
-        throw new Error('Driver account is not active. Please contact administration.');
-      }
-
-      // Now try to authenticate
-      const loginResponse = await fetch('/api/auth/driver-direct-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-          app_id: 'transport_management_system_menrm674',
-          api_key: 'app_e20655605d48ebce_cfa1ffe34268949a'
-        })
-      });
-
-      if (!loginResponse.ok) {
-        const errorData = await loginResponse.json();
-        throw new Error(errorData.error || 'Login failed');
-      }
-
-      const loginData = await loginResponse.json();
-      console.log('✅ Driver login successful:', loginData);
-
-      // Store authentication data in localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('tms_driver_user', JSON.stringify(loginData.user));
-        localStorage.setItem('tms_driver_token', loginData.access_token);
-        localStorage.setItem('tms_driver_expires', loginData.session?.expires_at || (Date.now() + 24 * 60 * 60 * 1000));
-        
-        // Also set cookies for session management
-        const maxAge = 24 * 60 * 60; // 24 hours
-        document.cookie = `tms_driver_token=${loginData.access_token}; path=/; max-age=${maxAge}; SameSite=Lax`;
-        if (loginData.refresh_token) {
-          document.cookie = `tms_driver_refresh=${loginData.refresh_token}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
-        }
-      }
-
-      setSuccess('Login successful! Redirecting to driver dashboard...');
+      // Use the auth context's loginDriverDirect method
+      const loginSuccess = await loginDriverDirect(email, password);
       
-      // Redirect after a short delay
-      setTimeout(() => {
-        router.push('/driver');
-      }, 1500);
+      if (loginSuccess) {
+        console.log('✅ Driver login successful via auth context');
+        setSuccess('Login successful! Redirecting to driver dashboard...');
+        
+        // Redirect after a short delay
+        setTimeout(() => {
+          router.push('/driver');
+        }, 1500);
+      } else {
+        throw new Error('Driver login failed. Please check your credentials.');
+      }
 
     } catch (error) {
       console.error('❌ Driver login error:', error);
@@ -151,14 +105,24 @@ export default function DriverLoginPage() {
           </div>
         )}
 
-        {/* Error Message */}
+        {/* Error Alert */}
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <div className="flex items-center space-x-2 text-red-700">
-              <AlertCircle className="w-5 h-5" />
-              <span className="font-medium">Authentication Error</span>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-600 mr-2" />
+              <span className="text-red-800 text-sm">{error}</span>
             </div>
-            <p className="text-sm text-red-600 mt-1">{error}</p>
+            {error.includes('not found') && (
+              <div className="mt-3">
+                <button
+                  onClick={createDriverAccount}
+                  disabled={loading}
+                  className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Create Driver Account
+                </button>
+              </div>
+            )}
           </div>
         )}
 
