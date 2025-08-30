@@ -341,3 +341,5 @@ window.locationTrackingDebug = {
 
 console.log('💡 Run locationTrackingDebug.runDebug() to debug location tracking issues');
 console.log('💡 Run locationTrackingDebug.printDebugResults() to see current debug results');
+
+

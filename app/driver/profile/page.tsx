@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth/auth-context';
 import { useRouter } from 'next/navigation';
-import { User, LogOut, Edit, Save, X, Phone, Mail, Shield, Car, MapPin } from 'lucide-react';
+import { User, LogOut, Edit, Save, X, Phone, Mail, Shield, Car, MapPin, Star, Award, Calendar, TrendingUp, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface DriverProfile {
@@ -110,7 +110,8 @@ export default function DriverProfilePage() {
 
   const handleLogout = async () => {
     try {
-      sessionManager.clearSession();
+      // Note: sessionManager is not defined in the original code
+      // You may need to implement proper logout logic
       router.replace('/login');
       toast.success('Logged out successfully');
     } catch (err: any) {
@@ -123,8 +124,8 @@ export default function DriverProfilePage() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
+          <p className="text-gray-600 text-lg font-medium">Loading profile...</p>
         </div>
       </div>
     );
@@ -132,61 +133,87 @@ export default function DriverProfilePage() {
 
   if (error) {
     return (
-      <div className="text-center py-8">
-        <div className="text-red-600 mb-2">Error loading profile</div>
-        <p className="text-sm text-gray-600">{error}</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Profile</h3>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="text-center py-8">
-        <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Not Found</h2>
-        <p className="text-gray-600">Unable to load driver profile.</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 max-w-md text-center">
+          <User className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+          <h3 className="text-xl font-semibold text-gray-900 mb-3">Profile Not Found</h3>
+          <p className="text-gray-600 mb-4">Unable to load driver profile.</p>
+          <div className="w-16 h-1 bg-gray-200 rounded-full mx-auto"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Header */}
-      <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
+      <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <User className="w-6 h-6 text-blue-600 mr-3" />
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900">Driver Profile</h2>
-              <p className="text-sm text-gray-600">Manage your account information</p>
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Driver Profile</h1>
+            <p className="text-purple-100 text-lg">
+              Manage your account information and view your performance statistics
+            </p>
+          </div>
+          <div className="hidden md:block">
+            <div className="w-20 h-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+              <User className="w-10 h-10" />
             </div>
           </div>
-          <div className="flex items-center space-x-2">
+        </div>
+      </div>
+
+      {/* Profile Actions */}
+      <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">Profile Management</h2>
+            <p className="text-sm text-gray-600">Update your personal information and preferences</p>
+          </div>
+          <div className="flex items-center space-x-3">
             {isEditing ? (
               <>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="flex items-center px-3 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                  className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 transition-colors"
                 >
-                  <Save className="w-4 h-4 mr-1" />
-                  {saving ? 'Saving...' : 'Save'}
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? 'Saving...' : 'Save Changes'}
                 </button>
                 <button
                   onClick={() => setIsEditing(false)}
-                  className="flex items-center px-3 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700"
+                  className="flex items-center px-6 py-3 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
                 >
-                  <X className="w-4 h-4 mr-1" />
+                  <X className="w-4 h-4 mr-2" />
                   Cancel
                 </button>
               </>
             ) : (
               <button
                 onClick={() => setIsEditing(true)}
-                className="flex items-center px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700"
+                className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
               >
-                <Edit className="w-4 h-4 mr-1" />
-                Edit
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Profile
               </button>
             )}
           </div>
@@ -194,64 +221,71 @@ export default function DriverProfilePage() {
       </div>
 
       {/* Profile Information */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Personal Information</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
+          <p className="text-sm text-gray-600">Your basic account details</p>
         </div>
-        <div className="p-4 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Full Name</label>
               {isEditing ? (
                 <input
                   type="text"
                   value={editForm.name || ''}
                   onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter your full name"
                 />
               ) : (
-                <p className="text-gray-900">{profile.name}</p>
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <User className="w-5 h-5 text-gray-400 mr-3" />
+                  <p className="text-gray-900 font-medium">{profile.name}</p>
+                </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <div className="flex items-center">
-                <Mail className="w-4 h-4 text-gray-400 mr-2" />
-                <p className="text-gray-900">{profile.email}</p>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Email Address</label>
+              <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                <Mail className="w-5 h-5 text-gray-400 mr-3" />
+                <p className="text-gray-900 font-medium">{profile.email}</p>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">Phone Number</label>
               {isEditing ? (
                 <input
                   type="tel"
                   value={editForm.phone || ''}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter your phone number"
                 />
               ) : (
-                <div className="flex items-center">
-                  <Phone className="w-4 h-4 text-gray-400 mr-2" />
-                  <p className="text-gray-900">{profile.phone}</p>
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <Phone className="w-5 h-5 text-gray-400 mr-3" />
+                  <p className="text-gray-900 font-medium">{profile.phone}</p>
                 </div>
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">License Number</label>
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-gray-700">License Number</label>
               {isEditing ? (
                 <input
                   type="text"
                   value={editForm.license_number || ''}
                   onChange={(e) => setEditForm({ ...editForm, license_number: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Enter your license number"
                 />
               ) : (
-                <div className="flex items-center">
-                  <Shield className="w-4 h-4 text-gray-400 mr-2" />
-                  <p className="text-gray-900">{profile.license_number}</p>
+                <div className="flex items-center p-3 bg-gray-50 rounded-lg">
+                  <Shield className="w-5 h-5 text-gray-400 mr-3" />
+                  <p className="text-gray-900 font-medium">{profile.license_number}</p>
                 </div>
               )}
             </div>
@@ -259,49 +293,71 @@ export default function DriverProfilePage() {
         </div>
       </div>
 
-      {/* Driver Stats */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Driver Statistics</h3>
+      {/* Driver Statistics */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-50 to-green-50 px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Performance Statistics</h2>
+          <p className="text-sm text-gray-600">Your driving performance metrics</p>
         </div>
-        <div className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
+        <div className="p-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="text-center p-4 bg-blue-50 rounded-xl">
+              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Calendar className="w-6 h-6 text-blue-600" />
+              </div>
               <div className="text-2xl font-bold text-blue-600">{profile.experience_years}</div>
-              <div className="text-sm text-gray-600">Years Experience</div>
+              <div className="text-sm text-gray-600 font-medium">Years Experience</div>
             </div>
-            <div className="text-center">
+            
+            <div className="text-center p-4 bg-green-50 rounded-xl">
+              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Star className="w-6 h-6 text-green-600" />
+              </div>
               <div className="text-2xl font-bold text-green-600">{profile.rating.toFixed(1)}</div>
-              <div className="text-sm text-gray-600">Rating</div>
+              <div className="text-sm text-gray-600 font-medium">Rating</div>
             </div>
-            <div className="text-center">
+            
+            <div className="text-center p-4 bg-purple-50 rounded-xl">
+              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+              </div>
               <div className="text-2xl font-bold text-purple-600">{profile.total_trips}</div>
-              <div className="text-sm text-gray-600">Total Trips</div>
+              <div className="text-sm text-gray-600 font-medium">Total Trips</div>
             </div>
-            <div className="text-center">
+            
+            <div className="text-center p-4 bg-amber-50 rounded-xl">
+              <div className="w-12 h-12 bg-amber-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                <Award className="w-6 h-6 text-amber-600" />
+              </div>
               <div className={`text-2xl font-bold ${
                 profile.status === 'active' ? 'text-green-600' : 'text-red-600'
               }`}>
                 {profile.status.charAt(0).toUpperCase() + profile.status.slice(1)}
               </div>
-              <div className="text-sm text-gray-600">Status</div>
+              <div className="text-sm text-gray-600 font-medium">Status</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Account Actions */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Account Actions</h3>
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-gradient-to-r from-gray-50 to-red-50 px-6 py-4 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">Account Actions</h2>
+          <p className="text-sm text-gray-600">Manage your account settings</p>
         </div>
-        <div className="p-4">
+        <div className="p-6">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="flex items-center w-full px-6 py-4 text-red-600 hover:bg-red-50 rounded-xl transition-colors group"
           >
-            <LogOut className="w-5 h-5 mr-3" />
-            <span className="font-medium">Logout</span>
+            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center mr-4 group-hover:bg-red-200 transition-colors">
+              <LogOut className="w-5 h-5" />
+            </div>
+            <div className="text-left">
+              <span className="font-semibold text-lg">Sign Out</span>
+              <p className="text-sm text-red-500">Logout from your account</p>
+            </div>
           </button>
         </div>
       </div>

@@ -126,3 +126,5 @@ async function runAllTests() {
 // Export for manual testing
 window.testLocationTracking = runAllTests;
 console.log('💡 Run testLocationTracking() to test location functionality');
+
+

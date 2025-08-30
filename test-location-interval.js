@@ -281,3 +281,5 @@ window.locationTrackingTest = {
 
 console.log('💡 Run locationTrackingTest.runComprehensiveTest() to test location tracking functionality');
 console.log('💡 Run locationTrackingTest.printTestResults() to see current test results');
+
+
