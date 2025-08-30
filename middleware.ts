@@ -5,34 +5,59 @@ import type { NextRequest } from 'next/server';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
-  // Only apply to driver routes
+  // Only apply to driver routes (except login)
   if (pathname.startsWith('/driver') && pathname !== '/driver/login') {
-    // Check for driver authentication
-    const driverToken = request.cookies.get('tms_driver_user');
+    // Check for driver authentication cookies
+    const driverUser = request.cookies.get('tms_driver_user');
+    const driverToken = request.cookies.get('tms_driver_token');
     const driverSession = request.cookies.get('tms_driver_session');
     
-    // If no driver authentication, redirect to login
-    if (!driverToken || !driverSession) {
+    // If no driver authentication, redirect to driver login
+    if (!driverUser || !driverToken) {
+      console.log('❌ Middleware: No driver authentication, redirecting to driver login');
       return NextResponse.redirect(new URL('/driver/login', request.url));
     }
     
     try {
-      // Parse and validate driver token
-      const driverData = JSON.parse(driverToken.value);
-      const sessionData = JSON.parse(driverSession.value);
-      
-      // Check if session is expired
-      if (sessionData.expires_at && Date.now() > sessionData.expires_at) {
-        return NextResponse.redirect(new URL('/driver/login', request.url));
-      }
+      // Parse and validate driver user data
+      const driverData = JSON.parse(driverUser.value);
       
       // Check if user has driver role
       if (driverData.role !== 'driver') {
-        return NextResponse.redirect(new URL('/login', request.url));
+        console.log('❌ Middleware: User does not have driver role:', driverData.role);
+        return NextResponse.redirect(new URL('/driver/login', request.url));
+      }
+      
+      // Check if session is expired (if session data exists)
+      if (driverSession) {
+        try {
+          const sessionData = JSON.parse(driverSession.value);
+          if (sessionData.expires_at && Date.now() > sessionData.expires_at) {
+            console.log('❌ Middleware: Driver session expired');
+            return NextResponse.redirect(new URL('/driver/login', request.url));
+          }
+        } catch (error) {
+          console.log('❌ Middleware: Invalid session data, redirecting to driver login');
+          return NextResponse.redirect(new URL('/driver/login', request.url));
+        }
+      }
+      
+      // Check if token is expired (if token has expiration)
+      if (driverToken.value.includes('.')) {
+        try {
+          // Simple check for JWT token expiration
+          const payload = JSON.parse(atob(driverToken.value.split('.')[1]));
+          if (payload.exp && Date.now() > payload.exp * 1000) {
+            console.log('❌ Middleware: Driver token expired');
+            return NextResponse.redirect(new URL('/driver/login', request.url));
+          }
+        } catch (error) {
+          // If we can't parse the token, continue (it might not be a JWT)
+        }
       }
       
     } catch (error) {
-      // Invalid token, redirect to login
+      console.log('❌ Middleware: Invalid driver data, redirecting to driver login');
       return NextResponse.redirect(new URL('/driver/login', request.url));
     }
   }
