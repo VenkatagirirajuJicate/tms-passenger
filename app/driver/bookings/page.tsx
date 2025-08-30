@@ -75,7 +75,7 @@ function BookingsContent() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
           <p className="text-gray-600 text-lg font-medium">Loading bookings...</p>
@@ -86,7 +86,7 @@ function BookingsContent() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Bookings</h3>
@@ -125,7 +125,7 @@ function BookingsContent() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">
@@ -327,7 +327,7 @@ function BookingsContent() {
 
 function BookingsFallback() {
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="flex items-center justify-center py-20">
       <div className="text-center">
         <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
         <p className="text-gray-600 text-lg font-medium">Loading bookings...</p>

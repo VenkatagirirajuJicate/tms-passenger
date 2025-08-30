@@ -71,7 +71,7 @@ const DriverLiveTrackingPage = () => {
 
   if (authLoading || isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
           <p className="text-gray-600 text-lg font-medium">Loading live tracking...</p>
@@ -82,7 +82,7 @@ const DriverLiveTrackingPage = () => {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-red-800 font-semibold text-xl mb-2">Access Denied</h2>
@@ -94,7 +94,7 @@ const DriverLiveTrackingPage = () => {
 
   if (userType !== 'driver') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-red-800 font-semibold text-xl mb-2">Access Denied</h2>
@@ -106,7 +106,7 @@ const DriverLiveTrackingPage = () => {
 
   if (!driverId) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-red-800 font-semibold text-xl mb-2">Driver Information Not Found</h2>
@@ -117,7 +117,7 @@ const DriverLiveTrackingPage = () => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       {/* Header */}
       <div className="bg-gradient-to-r from-green-600 to-blue-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">

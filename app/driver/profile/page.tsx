@@ -122,7 +122,7 @@ export default function DriverProfilePage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-4 border-green-200 border-t-green-600 mx-auto mb-6"></div>
           <p className="text-gray-600 text-lg font-medium">Loading profile...</p>
@@ -133,7 +133,7 @@ export default function DriverProfilePage() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-red-50 border border-red-200 rounded-xl p-8 max-w-md text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h3 className="text-red-800 font-semibold text-lg mb-2">Error Loading Profile</h3>
@@ -151,7 +151,7 @@ export default function DriverProfilePage() {
 
   if (!profile) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+      <div className="flex flex-col items-center justify-center py-20">
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-8 max-w-md text-center">
           <User className="w-20 h-20 text-gray-300 mx-auto mb-6" />
           <h3 className="text-xl font-semibold text-gray-900 mb-3">Profile Not Found</h3>
@@ -163,7 +163,7 @@ export default function DriverProfilePage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-8">
       {/* Header */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-8 text-white">
         <div className="flex items-center justify-between">
