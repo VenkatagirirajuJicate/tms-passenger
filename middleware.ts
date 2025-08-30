@@ -40,10 +40,12 @@ export function middleware(request: NextRequest) {
     const driverToken = request.cookies.get('tms_driver_token');
     const driverSession = request.cookies.get('tms_driver_session');
     
-    // If driver cookies are present, redirect to driver app
+    // If driver cookies are present, redirect to main login with warning
     if (driverUser && driverToken) {
-      console.log('🚗 Middleware: Driver detected trying to access student route, redirecting to driver app');
-      return NextResponse.redirect(new URL('/driver', request.url));
+      console.log('🚗 Middleware: Driver detected trying to access student route, redirecting to main login');
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.append('warning', 'driver_access_denied');
+      return NextResponse.redirect(loginUrl);
     }
     
     console.log('✅ Middleware: Student route accessed, no driver interference detected');

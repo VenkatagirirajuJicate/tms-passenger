@@ -36,15 +36,10 @@ export default function StudentRouteGuard({ children }: StudentRouteGuardProps) 
       return;
     }
 
-    // Check if user is a driver - redirect them to driver app
+    // Check if user is a driver - show warning and redirect to main login
     if (userType === 'driver') {
-      console.log('🚗 Driver detected trying to access student app, redirecting to driver app');
-      setAuthError('You are logged in as a driver. Redirecting you to the driver application...');
-      
-      // Redirect to driver app after a short delay
-      setTimeout(() => {
-        router.replace('/driver');
-      }, 2000);
+      console.log('🚗 Driver detected trying to access student app, showing warning');
+      setAuthError('You are logged in with a driver account. To access student features, please sign out and sign in with a student account.');
       return;
     }
 
@@ -83,8 +78,8 @@ export default function StudentRouteGuard({ children }: StudentRouteGuardProps) 
   }
 
   if (authError) {
-    // Special handling for driver redirect
-    if (authError.includes('driver') && authError.includes('redirecting')) {
+    // Special handling for driver role conflict
+    if (authError.includes('driver account')) {
       return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50">
           <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
@@ -92,22 +87,25 @@ export default function StudentRouteGuard({ children }: StudentRouteGuardProps) 
               <Car className="w-8 h-8 text-blue-600" />
             </div>
             
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Driver Detected</h2>
-            <p className="text-gray-600 mb-6">{authError}</p>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Driver Account Detected</h2>
+            <p className="text-gray-600 mb-6">
+              You are currently logged in with a driver account. To access student features, 
+              please sign out and sign in with a student account.
+            </p>
             
             <div className="space-y-3">
               <button
                 onClick={() => router.push('/driver')}
                 className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
-                Go to Driver App Now
+                Go to Driver App
               </button>
               
               <button
                 onClick={() => router.push('/login')}
                 className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors"
               >
-                Switch to Student Account
+                Sign Out & Switch Account
               </button>
             </div>
           </div>
@@ -131,14 +129,7 @@ export default function StudentRouteGuard({ children }: StudentRouteGuardProps) 
               onClick={() => router.push('/login')}
               className="w-full bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-700 transition-colors"
             >
-              Go to Login
-            </button>
-            
-            <button
-              onClick={() => router.push('/driver/login')}
-              className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors"
-            >
-              Driver Login
+              Go to Main Login
             </button>
           </div>
         </div>

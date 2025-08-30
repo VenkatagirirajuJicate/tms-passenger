@@ -17,9 +17,16 @@ export default function LoginPage() {
   const [fallbackError, setFallbackError] = useState<string | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showDriverWarning, setShowDriverWarning] = useState(false);
 
   // Combined useEffect for all initialization and redirect logic
   useEffect(() => {
+    // Check for warning parameter from middleware redirect
+    const warning = searchParams?.get('warning');
+    if (warning === 'driver_access_denied') {
+      setShowDriverWarning(true);
+    }
+    
     // Check for direct mode parameter
     const mode = searchParams?.get('mode');
     if (mode === 'direct') {
@@ -53,13 +60,6 @@ export default function LoginPage() {
     
     // Auto-redirect authenticated users
     if (isAuthenticated && !isLoading) {
-      // If user is a driver, redirect them to driver app instead of student dashboard
-      if (userType === 'driver') {
-        console.log('🚗 Driver detected on student login page, redirecting to driver app');
-        router.push('/driver');
-        return;
-      }
-      
       const redirectPath = userType === 'driver' ? '/driver' : '/dashboard';
       console.log('✅ Login page: User authenticated, redirecting...', { userType, redirectPath });
       router.push(redirectPath);
@@ -193,6 +193,33 @@ export default function LoginPage() {
             JKKN College Transport Portal
           </p>
         </div>
+
+        {/* Driver Warning Message */}
+        {showDriverWarning && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+            <div className="flex items-center">
+              <div className="flex-shrink-0">
+                <Car className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-yellow-800">
+                  Driver Account Detected
+                </h3>
+                <p className="text-sm text-yellow-700 mt-1">
+                  You are currently logged in with a driver account. To access student features, 
+                  please sign out and sign in with a student account, or use the{' '}
+                  <a 
+                    href="/driver/login" 
+                    className="font-medium underline hover:text-yellow-900"
+                  >
+                    Driver Login
+                  </a>{' '}
+                  for driver features.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Error Display */}
         {(error || fallbackError) && (
