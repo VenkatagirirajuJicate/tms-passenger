@@ -120,11 +120,6 @@ export async function GET(request: NextRequest) {
               routes: routeData,
               route_stops: null
             };
-            
-            console.log('🔍 API DEBUG: Route allocation found from students table fallback');
-            console.log('   - Raw route data:', routeData);
-            console.log('   - start_location:', routeData.start_location);
-            console.log('   - end_location:', routeData.end_location);
           }
         }
       } catch (err) {
