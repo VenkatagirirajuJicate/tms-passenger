@@ -4,7 +4,6 @@ import { Toaster } from "react-hot-toast";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import AutoLoginWrapper from "@/components/auto-login-wrapper";
-import StudentRouteGuard from "@/components/student-route-guard";
 import "./globals.css";
 
 const inter = Inter({
@@ -49,11 +48,9 @@ export default function RootLayout({
         >
           <ThemeProvider defaultTheme="system" storageKey="tms-passenger-theme">
             <AutoLoginWrapper>
-              <StudentRouteGuard>
-                <div id="root" className="h-full overflow-x-hidden">
-                  {children}
-                </div>
-              </StudentRouteGuard>
+              <div id="root" className="h-full overflow-x-hidden">
+                {children}
+              </div>
             </AutoLoginWrapper>
             <Toaster
               position="top-right"

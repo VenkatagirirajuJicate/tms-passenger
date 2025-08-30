@@ -19,20 +19,6 @@ export default function Home() {
       currentPath: typeof window !== 'undefined' ? window.location.pathname : 'SSR'
     });
 
-    // IMMEDIATE CHECK for driver cookies - redirect drivers to main login
-    if (typeof window !== 'undefined') {
-      const driverUser = localStorage.getItem('tms_driver_user');
-      const driverSession = localStorage.getItem('tms_driver_session');
-      
-      if (driverUser && driverSession) {
-        console.log('🚗 Home page: Driver cookies detected, redirecting to main login');
-        const loginUrl = new URL('/login', window.location.origin);
-        loginUrl.searchParams.append('warning', 'driver_access_denied');
-        router.replace(loginUrl.toString());
-        return;
-      }
-    }
-
     // Add a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       if (isLoading) {
