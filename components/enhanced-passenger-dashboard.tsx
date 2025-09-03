@@ -46,6 +46,7 @@ import { StudentDashboardData } from '@/types';
 import LiveBusTrackingModal from '@/components/live-bus-tracking-modal';
 import { SpendingAnalytics, PaymentTimeline } from '@/components/data-visualization';
 import DriverLocationDisplay from '@/components/driver-location-display';
+import { useAuth } from '@/lib/auth/auth-context';
 
 interface EnhancedPassengerDashboardProps {
   data: StudentDashboardData;
@@ -242,6 +243,7 @@ export default function EnhancedPassengerDashboard({
   const [refreshing, setRefreshing] = useState(false);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(true);
+  const { userType } = useAuth();
   
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -577,23 +579,25 @@ export default function EnhancedPassengerDashboard({
         </motion.div>
       )}
 
-      {/* Driver Location Display */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
-        className="space-y-6"
-      >
-        <div className="flex items-center justify-between">
-          <h2 className="text-heading-2">Live Driver Tracking</h2>
-          <div className="flex items-center space-x-3">
-            <Navigation className="w-6 h-6 text-blue-500" />
-            <span className="text-sm text-gray-500">Real-time updates</span>
+      {/* Driver Location Display (drivers only) */}
+      {userType === 'driver' && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="space-y-6"
+        >
+          <div className="flex items-center justify-between">
+            <h2 className="text-heading-2">Live Driver Tracking</h2>
+            <div className="flex items-center space-x-3">
+              <Navigation className="w-6 h-6 text-blue-500" />
+              <span className="text-sm text-gray-500">Real-time updates</span>
+            </div>
           </div>
-        </div>
-        
-        <DriverLocationDisplay />
-      </motion.div>
+          
+          <DriverLocationDisplay />
+        </motion.div>
+      )}
 
       {/* Analytics Section */}
       {data.analytics && showAnalytics && (
