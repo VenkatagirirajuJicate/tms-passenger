@@ -120,20 +120,25 @@ export function AuthProvider({
         
         // Get current auth state from unified service
         const authState = await unifiedAuthService.attemptAutoLogin();
+
+        // Normalize user type: treat 'student' as 'passenger' for consistency
+        const normalizedUserType = (authState.userType === 'student')
+          ? 'passenger'
+          : authState.userType;
         
         console.log('🔄 Auth initialization result:', {
           isAuthenticated: authState.isAuthenticated,
-          userType: authState.userType,
+          userType: normalizedUserType,
           userEmail: authState.user?.email
         });
 
         if (authState.isAuthenticated && authState.user) {
           setUser(authState.user);
           setSession(authState.session as AuthSession);
-          setUserType(authState.userType);
+          setUserType(normalizedUserType);
 
           // For passenger users, check if user object needs enhancement (missing studentId)
-          if (authState.userType === 'passenger' && authState.user && 'studentId' in authState.user && !authState.user.studentId && authState.user.email) {
+          if (normalizedUserType === 'passenger' && authState.user && 'studentId' in authState.user && !authState.user.studentId && authState.user.email) {
             console.log('🔧 Passenger user object missing enhanced data, attempting to enhance...');
             try {
               const integrationResult = await ParentAppIntegrationService.findOrCreateStudentFromParentApp(authState.user as ParentAppUser);
@@ -188,7 +193,7 @@ export function AuthProvider({
             }
 
             // For staff users, ensure they have appropriate permissions
-            if (authState.userType === 'staff' && authState.user) {
+            if (normalizedUserType === 'staff' && authState.user) {
               console.log('✅ Staff user authenticated:', {
                 email: authState.user.email,
                 role: authState.user.role,
@@ -197,7 +202,7 @@ export function AuthProvider({
             }
 
             // Check if passenger user is actually a staff member
-            if (authState.userType === 'passenger' && authState.user) {
+            if (normalizedUserType === 'passenger' && authState.user) {
               try {
                 console.log('🔍 Checking if passenger user is actually staff...');
                 const enhancedUser = await staffAuthService.enhanceUserWithStaffData(authState.user);
