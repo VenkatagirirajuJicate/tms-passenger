@@ -104,10 +104,10 @@ export function middleware(request: NextRequest) {
     const studentSession = request.cookies.get('tms_session')
       || request.cookies.get('session');
     
-    // For protected student/staff routes, ensure authentication exists
+    // Note: Do not hard-redirect unauthenticated users here to avoid race conditions
+    // The client-side ProtectedRoute/AuthProvider will handle redirecting to /login when needed.
     if (pathname.startsWith('/dashboard') && (!studentToken && !studentSession)) {
-      console.log('❌ Middleware: No student/staff authentication for protected route, redirecting to login');
-      return NextResponse.redirect(new URL('/login', request.url));
+      console.log('⚠️ Middleware: No student/staff cookies visible; allowing through for client guard');
     }
     
     console.log('✅ Middleware: Student/staff route accessed, no driver interference detected');
