@@ -16,6 +16,7 @@ import unifiedAuthService, { UnifiedUser } from './unified-auth-service';
 import driverAuthService from './driver-auth-service';
 import { sessionManager } from '../session';
 import { AutoLoginService } from './auto-login-service';
+import { staffAuthService } from './staff-auth-service';
 
 interface AuthContextType {
   user: UnifiedUser | null;
@@ -23,7 +24,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   error: string | null;
-  userType: 'passenger' | 'driver' | null;
+  userType: 'passenger' | 'driver' | 'staff' | null;
   login: (redirectUrl?: string) => void;
   loginDriver: (email: string, password: string) => Promise<boolean>;
   loginDriverDirect: (email: string, password: string) => Promise<boolean>;
@@ -31,9 +32,9 @@ interface AuthContextType {
   logout: (redirectToParent?: boolean) => void;
   refreshSession: () => Promise<boolean>;
   validateSession: () => Promise<boolean>;
-  hasPermission: (permission: string) => boolean;
-  hasRole: (role: string) => boolean;
-  hasAnyRole: (roles: string[]) => boolean;
+  hasPermission: (permission: string) => Promise<boolean>;
+  hasRole: (role: string) => Promise<boolean>;
+  hasAnyRole: (roles: string[]) => Promise<boolean>;
   handleAuthCallback: (
     token: string,
     refreshToken?: string
@@ -63,7 +64,7 @@ export function AuthProvider({
   const [session, setSession] = useState<AuthSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [userType, setUserType] = useState<'passenger' | 'driver' | null>(null);
+  const [userType, setUserType] = useState<'passenger' | 'driver' | 'staff' | null>(null);
 
   // Initialize auth on mount
   useEffect(() => {
@@ -73,6 +74,49 @@ export function AuthProvider({
         setError(null);
 
         console.log('🔄 Auth initialization - checking unified auth state...');
+        
+        // First check for driver authentication data in localStorage
+        if (typeof window !== 'undefined') {
+          // Check for driver auth service data (the keys it actually uses)
+          const driverUser = localStorage.getItem('tms_driver_user');
+          const driverSession = localStorage.getItem('tms_driver_session');
+          const driverData = localStorage.getItem('tms_driver_data');
+          
+          if (driverUser && driverSession) {
+            try {
+              const userData = JSON.parse(driverUser);
+              const sessionData = JSON.parse(driverSession);
+              const expiresAt = sessionData.expires_at;
+              
+              // Check if token is expired
+              if (Date.now() < expiresAt) {
+                console.log('✅ Driver authentication found in localStorage:', userData);
+                
+                // Set driver user in auth context
+                const driverUserData: UnifiedUser = {
+                  ...userData,
+                  role: 'driver',
+                  driver_id: userData.id
+                };
+                
+                setUser(driverUserData);
+                setUserType('driver');
+                setIsLoading(false);
+                return; // Skip unified auth check since we have valid driver auth
+              } else {
+                console.log('❌ Driver token expired, clearing localStorage');
+                localStorage.removeItem('tms_driver_user');
+                localStorage.removeItem('tms_driver_session');
+                localStorage.removeItem('tms_driver_data');
+              }
+            } catch (error) {
+              console.error('❌ Error parsing driver data from localStorage:', error);
+              localStorage.removeItem('tms_driver_user');
+              localStorage.removeItem('tms_driver_session');
+              localStorage.removeItem('tms_driver_data');
+            }
+          }
+        }
         
         // Get current auth state from unified service
         const authState = await unifiedAuthService.attemptAutoLogin();
@@ -138,10 +182,45 @@ export function AuthProvider({
                   console.log('✅ Session stored in sessionManager during initialization for student:', enhancedUser.studentId);
                 }
               }
-            } catch (error) {
-              console.warn('⚠️ Error enhancing user object:', error);
+                          } catch (error) {
+                console.warn('⚠️ Error enhancing user object:', error);
+              }
             }
-          }
+
+            // For staff users, ensure they have appropriate permissions
+            if (authState.userType === 'staff' && authState.user) {
+              console.log('✅ Staff user authenticated:', {
+                email: authState.user.email,
+                role: authState.user.role,
+                permissions: authState.user.permissions
+              });
+            }
+
+            // Check if passenger user is actually a staff member
+            if (authState.userType === 'passenger' && authState.user) {
+              try {
+                console.log('🔍 Checking if passenger user is actually staff...');
+                const enhancedUser = await staffAuthService.enhanceUserWithStaffData(authState.user);
+                
+                if (enhancedUser.role === 'staff') {
+                  console.log('✅ User upgraded to staff role:', {
+                    email: enhancedUser.email,
+                    role: enhancedUser.role,
+                    staffId: enhancedUser.staff_id
+                  });
+                  
+                  // Update the user and userType
+                  setUser(enhancedUser);
+                  setUserType('staff');
+                  
+                  // Store enhanced user in parent auth service
+                  parentAuthService.updateUser(enhancedUser);
+                }
+              } catch (error) {
+                console.warn('⚠️ Error checking staff status:', error);
+                // Continue with passenger role if staff check fails
+              }
+            }
 
           // Additional validation if enabled
           if (autoValidate) {
@@ -161,9 +240,34 @@ export function AuthProvider({
         }
       } catch (err) {
         console.error('Auth initialization error:', err);
-        setError('Failed to initialize authentication');
+        
+        // Handle specific error types gracefully
+        let errorMessage = 'Failed to initialize authentication';
+        
+        if (err instanceof Error) {
+          if (err.message.includes('network') || err.message.includes('fetch')) {
+            errorMessage = 'Network error. Please check your internet connection and refresh the page.';
+          } else if (err.message.includes('timeout')) {
+            errorMessage = 'Request timed out. Please refresh the page and try again.';
+          } else if (err.message.includes('unauthorized') || err.message.includes('401')) {
+            errorMessage = 'Authentication failed. Please log in again.';
+          } else if (err.message.includes('forbidden') || err.message.includes('403')) {
+            errorMessage = 'Access denied. Contact administrator for assistance.';
+          } else if (err.message.includes('server') || err.message.includes('500')) {
+            errorMessage = 'Server error. Please try again later or contact support.';
+          } else if (err.message.includes('supabase') || err.message.includes('database')) {
+            errorMessage = 'Database connection error. Please try again later.';
+          } else {
+            errorMessage = err.message;
+          }
+        }
+        
+        setError(errorMessage);
         setUser(null);
         setSession(null);
+        
+        // Auto-clear error after 10 seconds
+        setTimeout(() => setError(null), 10000);
       } finally {
         setIsLoading(false);
       }
@@ -332,13 +436,58 @@ export function AuthProvider({
       const result = await unifiedAuthService.loginDriverDirect(email, password);
       
       if (result.success) {
-        // Update state with driver user
+        // Instead of relying on getCurrentAuthState, explicitly set driver data
+        console.log('✅ Driver direct login successful, setting driver state explicitly');
+        
+        // Try to get the stored driver data from localStorage
+        const driverUser = localStorage.getItem('tms_driver_user');
+        const driverSession = localStorage.getItem('tms_driver_session');
+        
+        if (driverUser && driverSession) {
+          try {
+            const userData = JSON.parse(driverUser);
+            const sessionData = JSON.parse(driverSession);
+            
+            // Set driver user in auth context explicitly
+            const driverUserData: UnifiedUser = {
+              ...userData,
+              role: 'driver',
+              driver_id: userData.id
+            };
+            
+            setUser(driverUserData);
+            setUserType('driver');
+            setSession(sessionData as AuthSession);
+            
+            // CRITICAL: SET COOKIES for middleware validation
+            if (typeof window !== 'undefined') {
+              const maxAge = 24 * 60 * 60; // 24 hours
+              document.cookie = `tms_driver_user=${encodeURIComponent(driverUser)}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              document.cookie = `tms_driver_token=${encodeURIComponent(sessionData.access_token || 'driver-token')}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              document.cookie = `tms_driver_session=${encodeURIComponent(JSON.stringify(sessionData))}; path=/; max-age=${maxAge}; SameSite=Lax`;
+              
+              console.log('✅ Driver cookies set for middleware validation');
+            }
+            
+            console.log('✅ Driver state set successfully:', {
+              userType: 'driver',
+              userId: userData.id,
+              email: userData.email
+            });
+            
+            return true;
+          } catch (error) {
+            console.error('❌ Error parsing stored driver data:', error);
+          }
+        }
+        
+        // Fallback: try to get auth state from unified service
         const authState = unifiedAuthService.getCurrentAuthState();
         setUser(authState.user);
         setSession(authState.session as AuthSession);
-        setUserType(authState.userType);
+        setUserType('driver'); // Force set to driver
         
-        console.log('✅ Driver direct login successful:', result);
+        console.log('✅ Driver direct login successful (fallback):', result);
         return true;
       } else {
         setError(result.error || 'Driver direct login failed');
@@ -748,16 +897,16 @@ export function AuthProvider({
     }
   };
 
-  const hasPermission = (permission: string): boolean => {
-    return unifiedAuthService.hasPermission(permission);
+  const hasPermission = async (permission: string): Promise<boolean> => {
+    return await unifiedAuthService.hasPermission(permission);
   };
 
-  const hasRole = (role: string): boolean => {
-    return unifiedAuthService.hasRole(role);
+  const hasRole = async (role: string): Promise<boolean> => {
+    return await unifiedAuthService.hasRole(role);
   };
 
-  const hasAnyRole = (roles: string[]): boolean => {
-    return unifiedAuthService.hasAnyRole(roles);
+  const hasAnyRole = async (roles: string[]): Promise<boolean> => {
+    return await unifiedAuthService.hasAnyRole(roles);
   };
 
   return (
@@ -766,7 +915,7 @@ export function AuthProvider({
         user,
         session,
         isLoading,
-        isAuthenticated: !!user && (userType === 'passenger' || userType === 'driver'),
+        isAuthenticated: !!user && (userType === 'passenger' || userType === 'driver' || userType === 'staff'),
         error,
         userType,
         login,

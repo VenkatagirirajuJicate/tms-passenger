@@ -37,7 +37,33 @@ function BookingsContent() {
       });
       setGrouped(byStop);
     } catch (err: any) {
-      setError(err.message || 'Failed to load bookings');
+      console.error('❌ Error fetching bookings:', err);
+      
+      // Handle specific error types gracefully
+      let errorMessage = 'Failed to load bookings';
+      
+      if (err.message) {
+        if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and refresh the page.';
+        } else if (err.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please refresh the page and try again.';
+        } else if (err.message.includes('unauthorized') || err.message.includes('401')) {
+          errorMessage = 'Session expired. Please log in again.';
+        } else if (err.message.includes('forbidden') || err.message.includes('403')) {
+          errorMessage = 'Access denied. Contact administrator for assistance.';
+        } else if (err.message.includes('not found') || err.message.includes('404')) {
+          errorMessage = 'No bookings found for the selected date.';
+        } else if (err.message.includes('server') || err.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Auto-clear error after 10 seconds
+      setTimeout(() => setError(null), 10000);
     } finally {
       setLoading(false);
     }

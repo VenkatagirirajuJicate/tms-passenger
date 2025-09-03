@@ -91,3 +91,10 @@ console.log('💡 Run intervalTest.start() to test the interval functionality');
 console.log('💡 Run intervalTest.stop() to stop the test');
 
 
+
+
+
+
+
+
+

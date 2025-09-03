@@ -1,5 +1,6 @@
 import parentAuthService, { ParentAppUser, AuthSession } from './parent-auth-service';
 import driverAuthService, { DriverUser, DriverSession, DriverAuthData } from './driver-auth-service';
+import { staffAuthService } from './staff-auth-service';
 import { sessionManager } from '../session';
 
 export type UnifiedUser = ParentAppUser | DriverUser;
@@ -8,12 +9,12 @@ export interface UnifiedAuthState {
   user: UnifiedUser | null;
   session: AuthSession | DriverSession | null;
   isAuthenticated: boolean;
-  userType: 'passenger' | 'driver' | null;
+  userType: 'passenger' | 'driver' | 'staff' | null;
 }
 
 export interface LoginResult {
   success: boolean;
-  userType: 'passenger' | 'driver';
+  userType: 'passenger' | 'driver' | 'staff';
   redirectPath: string;
   error?: string;
 }
@@ -23,7 +24,7 @@ class UnifiedAuthService {
   /**
    * Check current authentication state
    */
-  getCurrentAuthState(): UnifiedAuthState {
+  async getCurrentAuthState(): Promise<UnifiedAuthState> {
     // Check for driver authentication first
     const driverUser = driverAuthService.getUser();
     const driverSession = driverAuthService.getSession();
@@ -37,16 +38,39 @@ class UnifiedAuthService {
       };
     }
 
-    // Check for passenger authentication
+    // Check for passenger/staff authentication
     const passengerUser = parentAuthService.getUser();
     const passengerSession = parentAuthService.getSession();
     
     if (passengerUser && passengerSession) {
+      // Check if this user is actually a staff member
+      let userType: 'passenger' | 'staff' = 'passenger';
+      
+      try {
+        // Use the staff auth service to check if user exists in staff database
+        const staffData = await staffAuthService.checkStaffStatus(passengerUser.email);
+        if (staffData.isStaff) {
+          userType = 'staff';
+          
+          // Enhance the user object with staff data
+          const enhancedUser = await staffAuthService.enhanceUserWithStaffData(passengerUser);
+          
+          return {
+            user: enhancedUser,
+            session: passengerSession,
+            isAuthenticated: true,
+            userType: 'staff'
+          };
+        }
+      } catch (error) {
+        console.warn('⚠️ Error checking staff status, defaulting to passenger:', error);
+      }
+      
       return {
         user: passengerUser,
         session: passengerSession,
         isAuthenticated: true,
-        userType: 'passenger'
+        userType: userType
       };
     }
 
@@ -88,10 +112,44 @@ class UnifiedAuthService {
   }
 
   /**
+   * Determine if user is a staff member
+   */
+  isStaff(user: UnifiedUser): boolean {
+    // Check for explicit staff role
+    if ('role' in user && user.role === 'staff') {
+      return true;
+    }
+
+    // Check for staff-related roles
+    if ('role' in user) {
+      const role = user.role.toLowerCase();
+      if (role.includes('staff') || role.includes('admin') || role.includes('faculty') || role.includes('teacher')) {
+        return true;
+      }
+    }
+
+    // Check for staff-specific permissions
+    if ('permissions' in user && user.permissions) {
+      const permissions = Object.keys(user.permissions);
+      if (permissions.some(p => p.includes('staff') || p.includes('admin') || p.includes('faculty'))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
    * Get appropriate dashboard path based on user type
    */
   getDashboardPath(user: UnifiedUser): string {
-    return this.isDriver(user) ? '/driver' : '/dashboard';
+    if (this.isDriver(user)) {
+      return '/driver';
+    } else if (this.isStaff(user)) {
+      return '/dashboard'; // Staff users go to the same dashboard as passengers
+    } else {
+      return '/dashboard';
+    }
   }
 
   /**
@@ -233,7 +291,7 @@ class UnifiedAuthService {
    * Validate current session based on user type
    */
   async validateSession(): Promise<boolean> {
-    const authState = this.getCurrentAuthState();
+    const authState = await this.getCurrentAuthState();
     
     if (!authState.isAuthenticated) {
       return false;
@@ -252,7 +310,7 @@ class UnifiedAuthService {
    * Refresh current session based on user type  
    */
   async refreshSession(): Promise<boolean> {
-    const authState = this.getCurrentAuthState();
+    const authState = await this.getCurrentAuthState();
     
     if (!authState.isAuthenticated) {
       return false;
@@ -270,8 +328,8 @@ class UnifiedAuthService {
   /**
    * Check if user has specific role
    */
-  hasRole(role: string): boolean {
-    const authState = this.getCurrentAuthState();
+  async hasRole(role: string): Promise<boolean> {
+    const authState = await this.getCurrentAuthState();
     
     if (!authState.isAuthenticated || !authState.user) {
       return false;
@@ -289,10 +347,14 @@ class UnifiedAuthService {
   /**
    * Check if user has any of the specified roles
    */
-  hasAnyRole(roles: string[]): boolean {
-    const authState = this.getCurrentAuthState();
+  async hasAnyRole(roles: string[]): Promise<boolean> {
+    const authState = await this.getCurrentAuthState();
     
     if (!authState.isAuthenticated || !authState.user) {
+      return false;
+    }
+
+    if (!authState.user) {
       return false;
     }
 
@@ -308,8 +370,8 @@ class UnifiedAuthService {
   /**
    * Check if user has specific permission (passengers only)
    */
-  hasPermission(permission: string): boolean {
-    const authState = this.getCurrentAuthState();
+  async hasPermission(permission: string): Promise<boolean> {
+    const authState = await this.getCurrentAuthState();
     
     if (!authState.isAuthenticated || !authState.user) {
       return false;
@@ -326,8 +388,8 @@ class UnifiedAuthService {
   /**
    * Logout user based on current auth type
    */
-  logout(redirectToParent?: boolean): void {
-    const authState = this.getCurrentAuthState();
+  async logout(redirectToParent?: boolean): Promise<void> {
+    const authState = await this.getCurrentAuthState();
     
     if (authState.userType === 'driver') {
       driverAuthService.logout();
@@ -342,8 +404,8 @@ class UnifiedAuthService {
   /**
    * Get access token from current auth method
    */
-  getAccessToken(): string | null {
-    const authState = this.getCurrentAuthState();
+  async getAccessToken(): Promise<string | null> {
+    const authState = await this.getCurrentAuthState();
     
     if (authState.userType === 'driver') {
       return driverAuthService.getAccessToken();
@@ -366,7 +428,7 @@ class UnifiedAuthService {
       const isValid = await driverAuthService.validateSession();
       if (isValid) {
         console.log('✅ Unified auto-login: Driver session valid');
-        return this.getCurrentAuthState();
+        return await this.getCurrentAuthState();
       } else {
         console.log('❌ Unified auto-login: Driver session invalid, clearing');
         driverAuthService.logout();
@@ -389,8 +451,8 @@ class UnifiedAuthService {
       try {
         const isValid = await parentAuthService.validateSession();
         if (isValid) {
-          console.log('✅ Unified auto-login: Passenger session valid');
-          return this.getCurrentAuthState();
+                        console.log('✅ Unified auto-login: Passenger session valid');
+              return await this.getCurrentAuthState();
         } else {
           console.log('❌ Unified auto-login: Passenger session invalid');
           
@@ -401,7 +463,7 @@ class UnifiedAuthService {
             const refreshed = await parentAuthService.refreshToken();
             if (refreshed) {
               console.log('✅ Unified auto-login: Token refresh successful');
-              return this.getCurrentAuthState();
+              return await this.getCurrentAuthState();
             } else {
               console.log('❌ Unified auto-login: Token refresh failed, clearing session');
             }

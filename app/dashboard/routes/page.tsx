@@ -310,93 +310,112 @@ export default function RoutesPage() {
               <div className="space-y-6">
                 {/* Route Path with All Boarding Points - Aligned Layout */}
                 <div className="space-y-4">
-                  {/* Starting Point */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-4 h-4 bg-green-600 rounded-full shadow-sm"></div>
-                      <div className="w-0.5 h-4 bg-gray-300"></div>
-                    </div>
-                    <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-green-900">{route.startLocation}</p>
-                          <p className="text-sm text-green-700">Starting Point</p>
-                        </div>
-                        <Badge variant="success">{route.departureTime}</Badge>
-                      </div>
-                    </div>
-                  </div>
+                  {(() => {
+                    // Sort stops once for efficiency
+                    const sortedStops = route.stops ? route.stops.sort((a, b) => a.sequenceOrder - b.sequenceOrder) : [];
+                    const firstStop = sortedStops[0];
+                    const lastStop = sortedStops[sortedStops.length - 1];
+                    const intermediateStops = sortedStops.filter(stop => 
+                      stop.stopName !== firstStop?.stopName && stop.stopName !== lastStop?.stopName
+                    );
 
-                  {/* All Intermediate Boarding Points */}
-                  {route.stops && route.stops
-                    .filter(stop => stop.stopName !== route.startLocation && stop.stopName !== route.endLocation)
-                    .sort((a, b) => a.sequenceOrder - b.sequenceOrder)
-                    .map((stop, index, filteredStops) => (
-                      <div key={stop.id} className="flex items-center space-x-4">
-                        <div className="flex flex-col items-center">
-                          <div className={`w-3 h-3 rounded-full shadow-sm border-2 border-white ${
-                            stop.isMajorStop ? 'bg-blue-600' : 'bg-gray-400'
-                          }`}></div>
-                          {index < filteredStops.length - 1 && (
+                    return (
+                      <>
+                        {/* Starting Point */}
+                        <div className="flex items-center space-x-4">
+                          <div className="flex flex-col items-center">
+                            <div className="w-4 h-4 bg-green-600 rounded-full shadow-sm"></div>
                             <div className="w-0.5 h-4 bg-gray-300"></div>
-                          )}
-                        </div>
-                        <div className={`flex-1 p-4 rounded-xl border ${
-                          stop.isMajorStop 
-                            ? 'bg-blue-50 border-blue-200' 
-                            : 'bg-gray-50 border-gray-200'
-                        }`}>
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <div className="flex items-center space-x-2">
-                                <p className={`font-semibold ${
-                                  stop.isMajorStop ? 'text-blue-900' : 'text-gray-900'
-                                }`}>
-                                  {stop.stopName}
+                          </div>
+                          <div className="flex-1 p-4 bg-green-50 rounded-xl border border-green-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-green-900">
+                                  {firstStop ? firstStop.stopName : route.startLocation}
                                 </p>
-                                {stop.isMajorStop && (
-                                  <Badge variant="info" size="sm">Major Stop</Badge>
-                                )}
+                                <p className="text-sm text-green-700">Starting Point</p>
                               </div>
-                              <p className={`text-sm ${
-                                stop.isMajorStop ? 'text-blue-700' : 'text-gray-700'
-                              }`}>
-                                Boarding Point
-                              </p>
+                              <Badge variant="success">
+                                {firstStop ? firstStop.stopTime : route.departureTime}
+                              </Badge>
                             </div>
-                            <Badge variant={stop.isMajorStop ? "info" : "default"}>
-                              {stop.stopTime}
-                            </Badge>
                           </div>
                         </div>
-                      </div>
-                    ))}
 
-                  {/* Final connector line before destination */}
-                  {route.stops && route.stops.filter(stop => stop.stopName !== route.startLocation && stop.stopName !== route.endLocation).length > 0 && (
-                    <div className="flex items-center space-x-4">
-                      <div className="flex flex-col items-center">
-                        <div className="w-0.5 h-4 bg-gray-300"></div>
-                      </div>
-                      <div className="flex-1"></div>
-                    </div>
-                  )}
+                        {/* All Intermediate Boarding Points */}
+                        {intermediateStops.map((stop, index) => (
+                          <div key={stop.id} className="flex items-center space-x-4">
+                            <div className="flex flex-col items-center">
+                              <div className={`w-3 h-3 rounded-full shadow-sm border-2 border-white ${
+                                stop.isMajorStop ? 'bg-blue-600' : 'bg-gray-400'
+                              }`}></div>
+                              {index < intermediateStops.length - 1 && (
+                                <div className="w-0.5 h-4 bg-gray-300"></div>
+                              )}
+                            </div>
+                            <div className={`flex-1 p-4 rounded-xl border ${
+                              stop.isMajorStop 
+                                ? 'bg-blue-50 border-blue-200' 
+                                : 'bg-gray-50 border-gray-200'
+                            }`}>
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <div className="flex items-center space-x-2">
+                                    <p className={`font-semibold ${
+                                      stop.isMajorStop ? 'text-blue-900' : 'text-gray-900'
+                                    }`}>
+                                      {stop.stopName}
+                                    </p>
+                                    {stop.isMajorStop && (
+                                      <Badge variant="info" size="sm">Major Stop</Badge>
+                                    )}
+                                  </div>
+                                  <p className={`text-sm ${
+                                    stop.isMajorStop ? 'text-blue-700' : 'text-gray-700'
+                                  }`}>
+                                    Boarding Point
+                                  </p>
+                                </div>
+                                <Badge variant={stop.isMajorStop ? "info" : "default"}>
+                                  {stop.stopTime}
+                                </Badge>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
 
-                  {/* Destination */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex flex-col items-center">
-                      <div className="w-4 h-4 bg-red-600 rounded-full shadow-sm"></div>
-                    </div>
-                    <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-semibold text-red-900">{route.endLocation}</p>
-                          <p className="text-sm text-red-700">Destination</p>
+                        {/* Final connector line before destination */}
+                        {intermediateStops.length > 0 && (
+                          <div className="flex items-center space-x-4">
+                            <div className="flex flex-col items-center">
+                              <div className="w-0.5 h-4 bg-gray-300"></div>
+                            </div>
+                            <div className="flex-1"></div>
+                          </div>
+                        )}
+
+                        {/* Destination */}
+                        <div className="flex items-center space-x-4">
+                          <div className="flex flex-col items-center">
+                            <div className="w-4 h-4 bg-red-600 rounded-full shadow-sm"></div>
+                          </div>
+                          <div className="flex-1 p-4 bg-red-50 rounded-xl border border-red-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-red-900">
+                                  {lastStop ? lastStop.stopName : route.endLocation}
+                                </p>
+                                <p className="text-sm text-red-700">Destination</p>
+                              </div>
+                              <Badge variant="danger">
+                                {lastStop ? lastStop.stopTime : route.arrivalTime}
+                              </Badge>
+                            </div>
+                          </div>
                         </div>
-                        <Badge variant="danger">{route.arrivalTime}</Badge>
-                      </div>
-                    </div>
-                  </div>
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Route Details */}

@@ -15,6 +15,7 @@ import { studentHelpers } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/auth-context';
 import EnrollmentDashboard from '@/components/enrollment-dashboard';
 import EnhancedPassengerDashboard from '@/components/enhanced-passenger-dashboard';
+import StaffDashboard from '@/components/staff-dashboard';
 import PaymentStatusBadge from '@/components/payment-status-badge';
 import { ServiceStatusBanner, AvailableServicesInfo } from '@/components/account-access-control';
 import EnrollmentStatusBanner from '@/components/enrollment-status-banner';
@@ -32,7 +33,7 @@ import {
 import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { user, isAuthenticated, userType, isLoading: authLoading } = useAuth();
   const enrollmentStatus = useEnrollmentStatus();
   const [dashboardData, setDashboardData] = useState<StudentDashboardData | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<any>(null);
@@ -214,6 +215,11 @@ export default function DashboardPage() {
         </div>
       </>
     );
+  }
+
+  // Render staff dashboard for staff users
+  if (userType === 'staff') {
+    return <StaffDashboard />;
   }
 
   // Enhanced Error state with recovery actions

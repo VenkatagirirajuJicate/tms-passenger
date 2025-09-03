@@ -88,7 +88,18 @@ export async function POST(request: NextRequest) {
             'grievances.view': true,
             'notifications.view': true,
             'profile.view': true,
-            'profile.edit': true
+            'profile.edit': true,
+            // Add staff-specific permissions if role is staff
+            ...(payload.role === 'staff' && {
+              'staff.dashboard': true,
+              'students.manage': true,
+              'routes.manage': true,
+              'bookings.manage': true,
+              'reports.view': true,
+              'admin.access': true,
+              'staff.directory': true,
+              'departments.manage': true
+            })
           }
         };
         
@@ -160,7 +171,18 @@ export async function POST(request: NextRequest) {
             'grievances.view': true,
             'notifications.view': true,
             'profile.view': true,
-            'profile.edit': true
+            'profile.edit': true,
+            // Add staff-specific permissions if role is staff
+            ...(payload.role === 'staff' && {
+              'staff.dashboard': true,
+              'students.manage': true,
+              'routes.manage': true,
+              'bookings.manage': true,
+              'reports.view': true,
+              'admin.access': true,
+              'staff.directory': true,
+              'departments.manage': true
+            })
           }
         };
         

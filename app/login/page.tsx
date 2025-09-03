@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { GraduationCap, Car, Users, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/auth/auth-context';
 
-type UserRole = 'passenger' | 'driver';
+type UserRole = 'passenger' | 'driver' | 'staff';
 
 export default function LoginPage() {
   const { login, loginDriver, loginDriverDirect, loginDriverOAuth, isAuthenticated, isLoading, error, userType } = useAuth();
@@ -53,7 +53,14 @@ export default function LoginPage() {
     
     // Auto-redirect authenticated users
     if (isAuthenticated && !isLoading) {
-      const redirectPath = userType === 'driver' ? '/driver' : '/dashboard';
+      let redirectPath = '/dashboard'; // Default to dashboard
+      
+      if (userType === 'driver') {
+        redirectPath = '/driver';
+      } else if (userType === 'staff' || userType === 'passenger') {
+        redirectPath = '/dashboard';
+      }
+      
       console.log('✅ Login page: User authenticated, redirecting...', { userType, redirectPath });
       router.push(redirectPath);
     }

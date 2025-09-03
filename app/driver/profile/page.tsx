@@ -102,7 +102,32 @@ export default function DriverProfilePage() {
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to update profile');
+      console.error('❌ Error updating profile:', err);
+      
+      // Handle specific error types gracefully
+      let errorMessage = 'Failed to update profile';
+      
+      if (err.message) {
+        if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (err.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (err.message.includes('unauthorized') || err.message.includes('401')) {
+          errorMessage = 'Session expired. Please log in again.';
+        } else if (err.message.includes('forbidden') || err.message.includes('403')) {
+          errorMessage = 'Access denied. Contact administrator for assistance.';
+        } else if (err.message.includes('not found') || err.message.includes('404')) {
+          errorMessage = 'Driver profile not found. Please contact support.';
+        } else if (err.message.includes('server') || err.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else if (err.message.includes('validation') || err.message.includes('invalid')) {
+          errorMessage = 'Invalid data provided. Please check your input and try again.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setSaving(false);
     }

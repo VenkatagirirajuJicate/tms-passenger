@@ -41,7 +41,34 @@ export default function DriverLoginPage() {
 
     } catch (error) {
       console.error('❌ Driver login error:', error);
-      setError(error instanceof Error ? error.message : 'Login failed');
+      
+      // Handle specific error types gracefully
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+          errorMessage = 'Invalid credentials. Please check your email and password.';
+        } else if (error.message.includes('forbidden') || error.message.includes('403')) {
+          errorMessage = 'Access denied. This account may not have driver privileges.';
+        } else if (error.message.includes('not found') || error.message.includes('404')) {
+          errorMessage = 'Account not found. Please check your email or contact support.';
+        } else if (error.message.includes('server') || error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else if (error.message.includes('credentials')) {
+          errorMessage = 'Invalid email or password. Please try again.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Auto-clear error after 8 seconds
+      setTimeout(() => setError(null), 8000);
     } finally {
       setLoading(false);
     }
@@ -73,7 +100,33 @@ export default function DriverLoginPage() {
         throw new Error(result.error || 'Failed to create account');
       }
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'Failed to create account');
+      console.error('❌ Account creation error:', error);
+      
+      // Handle specific error types gracefully
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your internet connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please try again.';
+        } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+          errorMessage = 'Unauthorized. Admin key may be invalid.';
+        } else if (error.message.includes('forbidden') || error.message.includes('403')) {
+          errorMessage = 'Access denied. Contact administrator for assistance.';
+        } else if (error.message.includes('already exists') || error.message.includes('duplicate')) {
+          errorMessage = 'Account already exists. Please try logging in instead.';
+        } else if (error.message.includes('server') || error.message.includes('500')) {
+          errorMessage = 'Server error. Please try again later or contact support.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
+      setError(errorMessage);
+      
+      // Auto-clear error after 8 seconds
+      setTimeout(() => setError(null), 8000);
     } finally {
       setLoading(false);
     }

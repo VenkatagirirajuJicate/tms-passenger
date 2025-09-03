@@ -52,7 +52,29 @@ const DriverLiveTrackingPage = () => {
         
       } catch (error) {
         console.error('Error fetching driver info:', error);
-        toast.error('Failed to load driver information');
+        
+        // Handle specific error types gracefully
+        let errorMessage = 'Failed to load driver information';
+        
+        if (error instanceof Error) {
+          if (error.message.includes('network') || error.message.includes('fetch')) {
+            errorMessage = 'Network error. Please check your internet connection and refresh the page.';
+          } else if (error.message.includes('timeout')) {
+            errorMessage = 'Request timed out. Please refresh the page and try again.';
+          } else if (error.message.includes('unauthorized') || error.message.includes('401')) {
+            errorMessage = 'Session expired. Please log in again.';
+          } else if (error.message.includes('forbidden') || error.message.includes('403')) {
+            errorMessage = 'Access denied. Contact administrator for assistance.';
+          } else if (error.message.includes('not found') || error.message.includes('404')) {
+            errorMessage = 'Driver profile not found. Please contact support.';
+          } else if (error.message.includes('server') || error.message.includes('500')) {
+            errorMessage = 'Server error. Please try again later or contact support.';
+          } else {
+            errorMessage = error.message;
+          }
+        }
+        
+        toast.error(errorMessage);
       } finally {
         setIsLoading(false);
       }

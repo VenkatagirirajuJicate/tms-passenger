@@ -20,14 +20,14 @@ export default function DriverRouteGuard({ children }: DriverRouteGuardProps) {
     // Check if user is authenticated and has driver role
     if (!isAuthenticated) {
       console.log('❌ Driver access denied: Not authenticated');
-      setAuthError('You must be logged in to access driver features.');
+      setAuthError('You must be logged in to access driver features. Please log in with your driver account.');
       router.replace('/driver/login');
       return;
     }
 
     if (userType !== 'driver') {
       console.log('❌ Driver access denied: Wrong user type:', userType);
-      setAuthError(`You are logged in as a ${userType}, but driver access requires a driver account.`);
+      setAuthError(`You are logged in as a ${userType}, but driver access requires a driver account. Please log in with a driver account or contact support if you believe this is an error.`);
       router.replace('/driver/login');
       return;
     }
@@ -43,7 +43,7 @@ export default function DriverRouteGuard({ children }: DriverRouteGuardProps) {
           hasRole: hasDriverRole, 
           hasData: hasDriverData 
         });
-        setAuthError('Your account does not have the necessary permissions to access driver features.');
+        setAuthError('Your account does not have the necessary permissions to access driver features. Please contact support to verify your driver account status.');
         router.replace('/driver/login');
         return;
       }
