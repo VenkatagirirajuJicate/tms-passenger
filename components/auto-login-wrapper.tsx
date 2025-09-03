@@ -66,19 +66,24 @@ export default function AutoLoginWrapper({ children }: AutoLoginWrapperProps) {
         console.log('🔄 Auto-login: Result:', result);
 
         if (result.success && result.user) {
-          console.log('✅ Auto-login: Success! Redirecting to dashboard...');
-          
-          // Small delay to show success state
+          const isDriver = (result.user as any)?.role === 'driver';
+          const targetPath = isDriver ? '/driver' : '/dashboard';
+          console.log('✅ Auto-login: Success! Redirecting to target...', { targetPath });
+
+          // Update state first
           setAutoLoginState({ 
             loading: false, 
             attempted: true, 
             result 
           });
 
-          // Redirect to dashboard after a brief moment
-          setTimeout(() => {
-            router.push('/dashboard');
-          }, 500);
+          // If we're already on the target path, don't redirect or show overlay
+          if (!pathname.startsWith(targetPath)) {
+            setTimeout(() => {
+              // Use full navigation to avoid router race conditions
+              window.location.href = targetPath;
+            }, 200);
+          }
           
         } else if (result.needsLogin) {
           console.log('🔄 Auto-login: No valid session, redirecting to login...');
@@ -160,7 +165,7 @@ export default function AutoLoginWrapper({ children }: AutoLoginWrapperProps) {
   }
 
   // Show success state briefly
-  if (autoLoginState.result?.success && !autoLoginState.loading) {
+  if (autoLoginState.result?.success && !autoLoginState.loading && !pathname.startsWith('/dashboard') && !pathname.startsWith('/driver')) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50 flex items-center justify-center">
         <div className="text-center space-y-6 p-8">
