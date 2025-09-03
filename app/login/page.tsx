@@ -53,16 +53,22 @@ export default function LoginPage() {
     
     // Auto-redirect authenticated users
     if (isAuthenticated && !isLoading) {
-      let redirectPath = '/dashboard'; // Default to dashboard
-      
-      if (userType === 'driver') {
-        redirectPath = '/driver';
-      } else if (userType === 'staff' || userType === 'passenger') {
-        redirectPath = '/dashboard';
-      }
+      const isDriver = userType === 'driver';
+      const redirectPath = isDriver ? '/driver' : '/dashboard';
       
       console.log('✅ Login page: User authenticated, redirecting...', { userType, redirectPath });
-      router.push(redirectPath);
+      
+      // If already on target path, do nothing
+      if (typeof window !== 'undefined' && window.location.pathname.startsWith(redirectPath)) {
+        return;
+      }
+      
+      // Use hard navigation to avoid client router race conditions
+      if (typeof window !== 'undefined') {
+        window.location.href = redirectPath;
+      } else {
+        router.push(redirectPath);
+      }
     }
   }, [isAuthenticated, isLoading, userType, router, searchParams]);
 
