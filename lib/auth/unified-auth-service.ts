@@ -1,6 +1,7 @@
 import parentAuthService, { ParentAppUser, AuthSession } from './parent-auth-service';
 import driverAuthService, { DriverUser, DriverSession, DriverAuthData } from './driver-auth-service';
 import { staffAuthService } from './staff-auth-service';
+import { studentAuthService } from './student-auth-service';
 import { sessionManager } from '../session';
 
 export type UnifiedUser = ParentAppUser | DriverUser;
@@ -9,12 +10,12 @@ export interface UnifiedAuthState {
   user: UnifiedUser | null;
   session: AuthSession | DriverSession | null;
   isAuthenticated: boolean;
-  userType: 'passenger' | 'driver' | 'staff' | null;
+  userType: 'passenger' | 'driver' | 'staff' | 'student' | null;
 }
 
 export interface LoginResult {
   success: boolean;
-  userType: 'passenger' | 'driver' | 'staff';
+  userType: 'passenger' | 'driver' | 'staff' | 'student';
   redirectPath: string;
   error?: string;
 }
@@ -43,17 +44,16 @@ class UnifiedAuthService {
     const passengerSession = parentAuthService.getSession();
     
     if (passengerUser && passengerSession) {
-      // Check if this user is actually a staff member
-      let userType: 'passenger' | 'staff' = 'passenger';
+      // Check if this user is actually a staff member first
+      let userType: 'passenger' | 'staff' | 'student' = 'passenger';
+      let enhancedUser = passengerUser;
       
       try {
         // Use the staff auth service to check if user exists in staff database
         const staffData = await staffAuthService.checkStaffStatus(passengerUser.email);
         if (staffData.isStaff) {
           userType = 'staff';
-          
-          // Enhance the user object with staff data
-          const enhancedUser = await staffAuthService.enhanceUserWithStaffData(passengerUser);
+          enhancedUser = await staffAuthService.enhanceUserWithStaffData(passengerUser);
           
           return {
             user: enhancedUser,
@@ -63,11 +63,30 @@ class UnifiedAuthService {
           };
         }
       } catch (error) {
-        console.warn('⚠️ Error checking staff status, defaulting to passenger:', error);
+        console.warn('⚠️ Error checking staff status:', error);
+      }
+      
+      // If not staff, check if they're a student
+      try {
+        const studentData = await studentAuthService.checkStudentStatus(passengerUser.email);
+        if (studentData.isStudent) {
+          userType = 'student';
+          enhancedUser = await studentAuthService.enhanceUserWithStudentData(passengerUser);
+          
+          console.log('✅ User validated as student:', {
+            email: enhancedUser.email,
+            role: enhancedUser.role,
+            studentId: enhancedUser.student_id
+          });
+        } else {
+          console.warn('⚠️ User not found in either staff or student databases:', passengerUser.email);
+        }
+      } catch (error) {
+        console.warn('⚠️ Error checking student status:', error);
       }
       
       return {
-        user: passengerUser,
+        user: enhancedUser,
         session: passengerSession,
         isAuthenticated: true,
         userType: userType
