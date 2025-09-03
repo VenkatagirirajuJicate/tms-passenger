@@ -110,7 +110,7 @@ function DashboardContent({
         icon: MapPin, 
         current: pathname === '/dashboard/location',
         requiresEnrollment: true,
-        disabled: !isEnrolled
+        disabled: true // Disabled as requested
       },
       { 
         name: 'Profile', 

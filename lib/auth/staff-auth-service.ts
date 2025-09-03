@@ -7,15 +7,26 @@ export interface StaffAuthData {
 }
 
 class StaffAuthService {
+  private staffStatusCache = new Map<string, { data: StaffAuthData; timestamp: number }>();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
   /**
    * Check if a user is a staff member by querying the staff API
    */
   async checkStaffStatus(email: string): Promise<StaffAuthData> {
+    // Check cache first
+    const cached = this.staffStatusCache.get(email);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      console.log('📋 Using cached staff status for:', email);
+      return cached.data;
+    }
     try {
       console.log('🔍 Checking staff status for:', email);
       
       // Query the staff API to check if this user exists as staff
       const staffMember = await staffHelpers.getStaffByEmail(email);
+      
+      let result: StaffAuthData;
       
       if (staffMember) {
         console.log('✅ User found in staff database:', {
@@ -25,30 +36,38 @@ class StaffAuthService {
           department: staffMember.department
         });
         
-        return {
+        result = {
           isStaff: true,
           staffMember,
           role: 'staff'
         };
       } else {
         console.log('ℹ️ User not found in staff database, treating as passenger');
-        return {
+        result = {
           isStaff: false,
           staffMember: null,
           role: 'passenger'
         };
       }
       
+      // Cache the result
+      this.staffStatusCache.set(email, { data: result, timestamp: Date.now() });
+      return result;
+      
     } catch (error) {
       console.error('❌ Error checking staff status:', error);
       
       // If there's an error checking staff status, default to passenger
       // This ensures the login flow doesn't break
-      return {
+      const errorResult = {
         isStaff: false,
         staffMember: null,
-        role: 'passenger'
+        role: 'passenger' as const
       };
+      
+      // Cache the error result for a shorter duration to prevent repeated failed calls
+      this.staffStatusCache.set(email, { data: errorResult, timestamp: Date.now() });
+      return errorResult;
     }
   }
 

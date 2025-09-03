@@ -50,15 +50,8 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Fetching staff data from external API...');
     
-    // Get the API key from environment variables
-    const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-    if (!apiKey) {
-      console.error('❌ API key not configured');
-      return NextResponse.json(
-        { error: 'API key not configured' },
-        { status: 500 }
-      );
-    }
+    // Use the same API key as admin app
+    const apiKey = 'jk_5483dc7eb7f1b7cd730a274ec61765cc_mcka9lzk';
 
     // Fetch staff data from external API
     const response = await fetch('https://my.jkkn.ac.in/api/api-management/staff', {
