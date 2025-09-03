@@ -98,8 +98,11 @@ export function middleware(request: NextRequest) {
     }
     
     // Additional enhancement: Check for valid student/staff authentication
-    const studentToken = request.cookies.get('tms_access_token');
-    const studentSession = request.cookies.get('tms_session');
+    // Accept both legacy and new cookie names set by different auth flows
+    const studentToken = request.cookies.get('tms_access_token')
+      || request.cookies.get('access_token');
+    const studentSession = request.cookies.get('tms_session')
+      || request.cookies.get('session');
     
     // For protected student/staff routes, ensure authentication exists
     if (pathname.startsWith('/dashboard') && (!studentToken && !studentSession)) {

@@ -318,7 +318,7 @@ class UnifiedAuthService {
 
     if (authState.userType === 'driver') {
       return await driverAuthService.validateSession();
-    } else if (authState.userType === 'passenger') {
+    } else if (authState.userType === 'passenger' || authState.userType === 'student') {
       return await parentAuthService.validateSession();
     }
 
