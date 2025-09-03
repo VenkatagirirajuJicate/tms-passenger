@@ -65,11 +65,13 @@ function CallbackContent() {
           if (redirectUrl) {
             sessionStorage.removeItem('post_login_redirect');
             console.log('🔄 Using stored redirect URL:', redirectUrl);
-            router.push(redirectUrl);
+            // Use window.location.href to prevent React Router issues
+            window.location.href = redirectUrl;
           } else {
             const targetPath = isDriverOAuth ? '/driver' : '/dashboard';
             console.log('🔄 Redirecting to default path:', targetPath);
-            router.push(targetPath);
+            // Use window.location.href to prevent React Router issues
+            window.location.href = targetPath;
           }
           return;
         }
@@ -103,11 +105,13 @@ function CallbackContent() {
           if (redirectUrl) {
             sessionStorage.removeItem('post_login_redirect');
             console.log('🔄 Using stored redirect URL:', redirectUrl);
-            router.push(redirectUrl);
+            // Use window.location.href to prevent React Router issues
+            window.location.href = redirectUrl;
           } else {
             const targetPath = isDriverOAuth ? '/driver' : '/dashboard';
             console.log('🔄 Redirecting to default path:', targetPath);
-            router.push(targetPath);
+            // Use window.location.href to prevent React Router issues
+            window.location.href = targetPath;
           }
           return;
         }
@@ -189,11 +193,13 @@ function CallbackContent() {
               if (redirectUrl) {
                 sessionStorage.removeItem('post_login_redirect');
                 console.log('🔄 Using stored redirect URL:', redirectUrl);
-                router.push(redirectUrl);
+                // Use window.location.href to prevent React Router issues
+                window.location.href = redirectUrl;
               } else {
                 const targetPath = isDriverOAuth ? '/driver' : '/dashboard';
                 console.log('🔄 Redirecting to default path:', targetPath);
-                router.push(targetPath);
+                // Use window.location.href to prevent React Router issues
+                window.location.href = targetPath;
               }
             } else {
               console.error('❌ Direct token authentication failed');
@@ -287,11 +293,13 @@ function CallbackContent() {
             if (redirectUrl) {
               sessionStorage.removeItem('post_login_redirect');
               console.log('🔄 Using stored redirect URL:', redirectUrl);
-              router.push(redirectUrl);
+              // Use window.location.href to prevent React Router issues
+              window.location.href = redirectUrl;
             } else {
               const targetPath = isDriverOAuth ? '/driver' : '/dashboard';
               console.log('🔄 Redirecting to default path:', targetPath);
-              router.push(targetPath);
+              // Use window.location.href to prevent React Router issues
+              window.location.href = targetPath;
             }
           } else {
             console.error('❌ Authentication callback failed');
