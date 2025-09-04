@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import {
   Bus,
   MapPin,
@@ -348,108 +349,176 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
   // Show enrollment form
   return (
     <div className="space-y-6">
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      {/* Welcome Message */}
+      <div className="text-center mb-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          Let's Get You Enrolled!
+        </h3>
+        <p className="text-gray-600">
+          Follow these simple steps to set up your transport service
+        </p>
+      </div>
+
+      {/* Progress Indicator */}
+      <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center space-x-4">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+            selectedRoute ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-100 border-gray-300 text-gray-500'
+          }`}>
+            {selectedRoute ? <CheckCircle className="w-5 h-5" /> : '1'}
+          </div>
+          <div className={`w-16 h-0.5 ${
+            selectedRoute ? 'bg-blue-600' : 'bg-gray-300'
+          }`}></div>
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+            selectedStop ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-100 border-gray-300 text-gray-500'
+          }`}>
+            {selectedStop ? <CheckCircle className="w-5 h-5" /> : '2'}
+          </div>
+          <div className={`w-16 h-0.5 ${
+            selectedStop ? 'bg-blue-600' : 'bg-gray-300'
+          }`}></div>
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
+            selectedRoute && selectedStop ? 'bg-blue-600 border-blue-600 text-white' : 'bg-gray-100 border-gray-300 text-gray-500'
+          }`}>
+            {selectedRoute && selectedStop ? <CheckCircle className="w-5 h-5" /> : '3'}
+          </div>
+        </div>
+      </div>
+
+      {/* Step 1: Route Selection */}
+      <div className="bg-white border border-gray-200 rounded-lg p-6">
         <div className="flex items-center space-x-3 mb-4">
-          <Bus className="w-8 h-8 text-blue-600" />
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            selectedRoute ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+          }`}>
+            {selectedRoute ? <CheckCircle className="w-5 h-5" /> : '1'}
+          </div>
           <div>
-            <h3 className="text-lg font-semibold text-blue-800">
-              Enroll for Transport Service
-            </h3>
-            <p className="text-blue-700">
-              Choose your preferred route and boarding stop to get started.
+            <h4 className="text-lg font-medium text-gray-900">
+              Choose Your Route
+            </h4>
+            <p className="text-sm text-gray-600">
+              Select the route that best fits your commute
             </p>
           </div>
         </div>
 
-        {!showEnrollmentForm ? (
-          <button
-            onClick={() => setShowEnrollmentForm(true)}
-            className="bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
-          >
-            Start Enrollment Process
-          </button>
-        ) : (
-          <div className="space-y-6">
-            {/* Route Selection */}
-            <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">
-                Step 1: Select Your Route
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {routes.map((route) => (
-                  <RouteCard
-                    key={route.id}
-                    route={route}
-                    isSelected={selectedRoute?.id === route.id}
-                    onClick={() => handleRouteSelect(route)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Stop Selection */}
-            {selectedRoute && selectedRoute.stops && (
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">
-                  Step 2: Select Your Boarding Stop
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {selectedRoute.stops.map((stop) => (
-                    <StopCard
-                      key={stop.id}
-                      stop={stop}
-                      isSelected={selectedStop?.id === stop.id}
-                      onClick={() => handleStopSelect(stop)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Special Requirements */}
-            {selectedRoute && selectedStop && (
-              <div>
-                <h4 className="text-md font-medium text-gray-900 mb-4">
-                  Step 3: Special Requirements (Optional)
-                </h4>
-                <textarea
-                  value={specialRequirements}
-                  onChange={(e) => setSpecialRequirements(e.target.value)}
-                  placeholder="Any special requirements or accessibility needs..."
-                  className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  rows={3}
-                />
-              </div>
-            )}
-
-            {/* Submit Button */}
-            {selectedRoute && selectedStop && (
-              <div className="flex justify-end space-x-3">
-                <button
-                  onClick={() => setShowEnrollmentForm(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSubmitEnrollment}
-                  disabled={submitting}
-                  className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors flex items-center space-x-2"
-                >
-                  {submitting ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <span>Submit Enrollment Request</span>
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {routes.map((route) => (
+            <RouteCard
+              key={route.id}
+              route={route}
+              isSelected={selectedRoute?.id === route.id}
+              onClick={() => handleRouteSelect(route)}
+            />
+          ))}
+        </div>
       </div>
+
+      {/* Step 2: Stop Selection */}
+      {selectedRoute && selectedRoute.stops && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200 rounded-lg p-6"
+        >
+          <div className="flex items-center space-x-3 mb-4">
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              selectedStop ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
+            }`}>
+              {selectedStop ? <CheckCircle className="w-5 h-5" /> : '2'}
+            </div>
+            <div>
+              <h4 className="text-lg font-medium text-gray-900">
+                Pick Your Boarding Stop
+              </h4>
+              <p className="text-sm text-gray-600">
+                Choose where you'll board the transport
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {selectedRoute.stops.map((stop) => (
+              <StopCard
+                key={stop.id}
+                stop={stop}
+                isSelected={selectedStop?.id === stop.id}
+                onClick={() => handleStopSelect(stop)}
+              />
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* Step 3: Special Requirements */}
+      {selectedRoute && selectedStop && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-gray-200 rounded-lg p-6"
+        >
+          <div className="flex items-center space-x-3 mb-4">
+            <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+              3
+            </div>
+            <div>
+              <h4 className="text-lg font-medium text-gray-900">
+                Special Requirements (Optional)
+              </h4>
+              <p className="text-sm text-gray-600">
+                Let us know if you have any special needs
+              </p>
+            </div>
+          </div>
+
+          <textarea
+            value={specialRequirements}
+            onChange={(e) => setSpecialRequirements(e.target.value)}
+            placeholder="Any special requirements or accessibility needs..."
+            className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+            rows={3}
+          />
+        </motion.div>
+      )}
+
+      {/* Action Buttons */}
+      {selectedRoute && selectedStop && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex justify-end space-x-4 pt-4"
+        >
+          <button
+            onClick={() => {
+              setSelectedRoute(null);
+              setSelectedStop(null);
+              setSpecialRequirements('');
+            }}
+            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+          >
+            Start Over
+          </button>
+          <button
+            onClick={handleSubmitEnrollment}
+            disabled={submitting}
+            className="px-8 py-3 bg-gradient-to-r from-blue-600 to-green-600 text-white rounded-lg hover:from-blue-700 hover:to-green-700 disabled:opacity-50 transition-all duration-200 font-medium flex items-center space-x-2 shadow-lg hover:shadow-xl"
+          >
+            {submitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Submitting...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle className="w-4 h-4" />
+                <span>Submit Enrollment</span>
+              </>
+            )}
+          </button>
+        </motion.div>
+      )}
     </div>
   );
 }
@@ -465,10 +534,10 @@ function RouteCard({ route, isSelected, onClick }: {
   return (
     <div
       onClick={onClick}
-      className={`p-4 border rounded-lg cursor-pointer transition-all hover:shadow-md ${
+      className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-lg ${
         isSelected 
-          ? 'border-blue-500 bg-blue-50 shadow-md' 
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
+          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
       }`}
     >
       <div className="flex items-center justify-between mb-2">
@@ -531,29 +600,36 @@ function StopCard({ stop, isSelected, onClick }: {
   return (
     <div
       onClick={onClick}
-      className={`p-3 border rounded-lg cursor-pointer transition-all hover:shadow-sm ${
+      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
         isSelected 
-          ? 'border-blue-500 bg-blue-50 shadow-sm' 
-          : 'border-gray-200 hover:border-gray-300'
+          ? 'border-blue-500 bg-blue-50 shadow-md scale-105' 
+          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
       }`}
     >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-          <span className="font-medium text-gray-900">{stop.name}</span>
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center space-x-3">
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+            isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+          }`}>
+            <MapPin className="w-4 h-4" />
+          </div>
+          <div>
+            <span className="font-semibold text-gray-900 text-lg">{stop.name}</span>
+            {stop.isMajor && (
+              <span className="ml-2 inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
+                Major Stop
+              </span>
+            )}
+          </div>
         </div>
-        <div className="flex items-center text-sm text-gray-500">
-          <Clock className="w-3 h-3 mr-1" />
-          <span>{stop.time}</span>
+        <div className="text-right">
+          <div className="text-sm font-medium text-gray-900">{stop.time}</div>
+          <div className="text-xs text-gray-500">Stop #{stop.sequence}</div>
         </div>
       </div>
-      {stop.isMajor && (
-        <span className="inline-block mt-1 px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-          Major Stop
-        </span>
-      )}
-      <div className="mt-1 text-xs text-gray-400">
-        Stop #{stop.sequence}
+      
+      <div className="text-sm text-gray-600">
+        {stop.isMajor ? 'This is a major boarding point with more frequent service' : 'Regular boarding point'}
       </div>
     </div>
   );

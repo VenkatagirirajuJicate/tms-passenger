@@ -9,7 +9,8 @@ import {
   AlertCircle, 
   RefreshCw,
   CheckCircle,
-  PlusCircle
+  PlusCircle,
+  X
 } from 'lucide-react';
 import { studentHelpers } from '@/lib/supabase';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -41,6 +42,7 @@ export default function DashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
 
   const fetchDashboardData = async () => {
     try {
@@ -277,76 +279,132 @@ export default function DashboardPage() {
   
   if (shouldShowEnrollmentDashboard) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="container-modern py-8 space-y-8">
-          {/* Payment Status Components REMOVED for first-time login users */}
-          {/* Students without route allocation don't need to see payment restrictions */}
-
-          {/* Modern Welcome Header for Transport Enrollment */}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container-modern py-12 px-4">
+          {/* Simplified Welcome Section */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center"
+            className="text-center mb-12"
           >
-            <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200" padding="lg">
-              <div className="flex items-center justify-center space-x-4 mb-6">
-                <div className="p-4 bg-green-600 rounded-2xl">
-                  <Bus className="w-8 h-8 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-heading-1 text-green-900">Welcome, {profile?.studentName}!</h1>
-                  <p className="text-green-700 text-lg">Let's get you enrolled in transport services</p>
+            <div className="max-w-2xl mx-auto">
+              {/* Welcome Icon */}
+              <div className="mb-6">
+                <div className="inline-flex p-4 bg-gradient-to-r from-green-500 to-blue-600 rounded-3xl shadow-lg">
+                  <Bus className="w-12 h-12 text-white" />
                 </div>
               </div>
               
-              <div className="flex justify-center space-x-4">
-                <Button
-                  onClick={handleRefresh}
-                  loading={refreshing}
-                  icon={RefreshCw}
-                  variant="secondary"
-                >
-                  Refresh Status
-                </Button>
-              </div>
-            </Card>
+              {/* Welcome Text */}
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                Welcome to TMS Transport!
+              </h1>
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Get started with your transport services in just a few simple steps
+              </p>
+            </div>
           </motion.div>
 
-          {/* Enrollment Status Banner */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-          >
-            <EnrollmentStatusBanner />
-          </motion.div>
-
-          {/* Modern Transport Enrollment Section */}
+          {/* Single Main Action Card */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
+            className="max-w-2xl mx-auto"
           >
-            <Card padding="lg">
-              <div className="text-center mb-8">
-                <div className="p-6 bg-gradient-to-r from-green-500 to-green-600 rounded-3xl w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-                  <Bus className="w-12 h-12 text-white" />
+            <Card className="bg-white shadow-xl border-0" padding="xl">
+              <div className="text-center">
+                {/* Enrollment Icon */}
+                <div className="mb-6">
+                  <div className="inline-flex p-6 bg-gradient-to-r from-blue-500 to-green-500 rounded-2xl">
+                    <Bus className="w-16 h-16 text-white" />
+                  </div>
                 </div>
-                <h2 className="text-heading-2 mb-3">Transport Enrollment</h2>
-                <p className="text-body text-lg">Get started with your transport services</p>
+                
+                {/* Main Message */}
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                  Ready to Get Started?
+                </h2>
+                <p className="text-gray-600 mb-8 text-lg leading-relaxed">
+                  Enroll for transport services to access routes, schedules, and live tracking. 
+                  It only takes a few minutes to set up.
+                </p>
+                
+                {/* Single Call-to-Action */}
+                <div className="space-y-4">
+                  <Button
+                    onClick={() => setShowEnrollmentForm(true)}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold py-4 px-8 text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-200"
+                  >
+                    Start Enrollment Process
+                  </Button>
+                  
+                  <p className="text-sm text-gray-500">
+                    You'll be able to choose your preferred route and boarding stop
+                  </p>
+                </div>
               </div>
-              
-              <EnrollmentDashboard 
-                student={{
-                  id: profile?.id || '',
-                  student_name: profile?.studentName || '',
-                  email: profile?.email || '',
-                  transport_enrolled: profile?.transportProfile?.transportStatus === 'active',
-                  enrollment_status: profile?.transportProfile?.enrollmentStatus || 'pending'
-                }}
-              />
             </Card>
           </motion.div>
+
+          {/* Quick Help Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="max-w-2xl mx-auto mt-8"
+          >
+            <Card className="bg-gray-50 border-gray-200" padding="md">
+              <div className="text-center">
+                <h3 className="text-lg font-semibold text-gray-700 mb-2">
+                  Need Help?
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Contact transport office or check the help section for guidance
+                </p>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Enrollment Form Modal */}
+          {showEnrollmentForm && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+              onClick={() => setShowEnrollmentForm(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">Transport Enrollment</h2>
+                    <button
+                      onClick={() => setShowEnrollmentForm(false)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <X className="w-6 h-6 text-gray-500" />
+                    </button>
+                  </div>
+                  
+                  <EnrollmentDashboard 
+                    student={{
+                      id: profile?.id || '',
+                      student_name: profile?.studentName || '',
+                      email: profile?.email || '',
+                      transport_enrolled: profile?.transportProfile?.transportStatus === 'active',
+                      enrollment_status: profile?.transportProfile?.enrollmentStatus || 'pending'
+                    }}
+                  />
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
         </div>
       </div>
     );
