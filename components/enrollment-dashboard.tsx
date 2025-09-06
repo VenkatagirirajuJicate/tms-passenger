@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import {
   Bus,
@@ -10,7 +10,18 @@ import {
   CheckCircle,
   XCircle,
   AlertCircle,
-  Loader2
+  Loader2,
+  Search,
+  Filter,
+  Star,
+  Navigation,
+  Route,
+  Timer,
+  DollarSign,
+  TrendingUp,
+  Eye,
+  ChevronRight,
+  Map
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/lib/auth/auth-context';
@@ -73,6 +84,14 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
   const [submitting, setSubmitting] = useState(false);
   const [showEnrollmentForm, setShowEnrollmentForm] = useState(false);
   const [specialRequirements, setSpecialRequirements] = useState('');
+  const [routeSearchTerm, setRouteSearchTerm] = useState('');
+  const [stopSearchTerm, setStopSearchTerm] = useState('');
+  const [routeFilter, setRouteFilter] = useState('all'); // all, available, popular
+  const [showRouteDetails, setShowRouteDetails] = useState<string | null>(null);
+
+  // Refs for smooth scrolling
+  const stoppingSectionRef = useRef<HTMLDivElement>(null);
+  const submitSectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -135,15 +154,64 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
     }
   };
 
+  // Smooth scroll functions
+  const scrollToStoppingSection = () => {
+    if (stoppingSectionRef.current) {
+      stoppingSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  };
+
+  const scrollToSubmitSection = () => {
+    if (submitSectionRef.current) {
+      submitSectionRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+        inline: 'nearest'
+      });
+    }
+  };
+
   const handleRouteSelect = (route: Route) => {
     setSelectedRoute(route);
     setSelectedStop(null);
     // Route already contains stops data from the API
+    
+    // Scroll to stopping section after a short delay to allow state update
+    setTimeout(() => {
+      scrollToStoppingSection();
+    }, 100);
   };
 
   const handleStopSelect = (stop: RouteStop) => {
     setSelectedStop(stop);
+    
+    // Scroll to submit section after a short delay to allow state update
+    setTimeout(() => {
+      scrollToSubmitSection();
+    }, 100);
   };
+
+  // Filter and search functions
+  const filteredRoutes = routes.filter(route => {
+    const matchesSearch = route.routeName.toLowerCase().includes(routeSearchTerm.toLowerCase()) ||
+                         route.routeCode.toLowerCase().includes(routeSearchTerm.toLowerCase()) ||
+                         route.startPoint.toLowerCase().includes(routeSearchTerm.toLowerCase()) ||
+                         route.endPoint.toLowerCase().includes(routeSearchTerm.toLowerCase());
+    
+    const matchesFilter = routeFilter === 'all' || 
+                         (routeFilter === 'available' && route.availableSeats > 0) ||
+                         (routeFilter === 'popular' && route.currentPassengers > route.capacity * 0.7);
+    
+    return matchesSearch && matchesFilter;
+  });
+
+  const filteredStops = selectedRoute?.stops?.filter(stop => 
+    stop.name.toLowerCase().includes(stopSearchTerm.toLowerCase())
+  ) || [];
 
   const handleSubmitEnrollment = async () => {
     if (!selectedRoute || !selectedStop) {
@@ -388,7 +456,7 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
 
       {/* Step 1: Route Selection */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center space-x-3 mb-4">
+        <div className="flex items-center space-x-3 mb-6">
           <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
             selectedRoute ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
           }`}>
@@ -404,26 +472,100 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {routes.map((route) => (
-            <RouteCard
-              key={route.id}
-              route={route}
-              isSelected={selectedRoute?.id === route.id}
-              onClick={() => handleRouteSelect(route)}
+        {/* Search and Filter Controls */}
+        <div className="mb-6 space-y-4">
+          {/* Search Bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Search routes by name, code, or location..."
+              value={routeSearchTerm}
+              onChange={(e) => setRouteSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-          ))}
+          </div>
+
+          {/* Filter Buttons */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setRouteFilter('all')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                routeFilter === 'all' 
+                  ? 'bg-blue-600 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <Filter className="w-4 h-4 inline mr-1" />
+              All Routes
+            </button>
+            <button
+              onClick={() => setRouteFilter('available')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                routeFilter === 'available' 
+                  ? 'bg-green-600 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4 inline mr-1" />
+              Available
+            </button>
+            <button
+              onClick={() => setRouteFilter('popular')}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                routeFilter === 'popular' 
+                  ? 'bg-orange-600 text-white' 
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 inline mr-1" />
+              Popular
+            </button>
+          </div>
+        </div>
+
+        {/* Route Cards Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {filteredRoutes.length > 0 ? (
+            filteredRoutes.map((route) => (
+              <EnhancedRouteCard
+                key={route.id}
+                route={route}
+                isSelected={selectedRoute?.id === route.id}
+                onClick={() => handleRouteSelect(route)}
+                showDetails={showRouteDetails === route.id}
+                onToggleDetails={() => setShowRouteDetails(
+                  showRouteDetails === route.id ? null : route.id
+                )}
+              />
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <Route className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No routes found matching your criteria</p>
+              <button
+                onClick={() => {
+                  setRouteSearchTerm('');
+                  setRouteFilter('all');
+                }}
+                className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Step 2: Stop Selection */}
       {selectedRoute && selectedRoute.stops && (
         <motion.div
+          ref={stoppingSectionRef}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white border border-gray-200 rounded-lg p-6"
         >
-          <div className="flex items-center space-x-3 mb-4">
+          <div className="flex items-center space-x-3 mb-6">
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
               selectedStop ? 'bg-green-100 text-green-600' : 'bg-blue-100 text-blue-600'
             }`}>
@@ -434,20 +576,68 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
                 Pick Your Boarding Stop
               </h4>
               <p className="text-sm text-gray-600">
-                Choose where you'll board the transport
+                Choose where you'll board the transport on {selectedRoute.routeName}
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {selectedRoute.stops.map((stop) => (
-              <StopCard
-                key={stop.id}
-                stop={stop}
-                isSelected={selectedStop?.id === stop.id}
-                onClick={() => handleStopSelect(stop)}
+          {/* Stop Search */}
+          <div className="mb-6">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search stops by name..."
+                value={stopSearchTerm}
+                onChange={(e) => setStopSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-            ))}
+            </div>
+          </div>
+
+          {/* Route Info Banner */}
+          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <Bus className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h5 className="font-semibold text-gray-900">{selectedRoute.routeCode} - {selectedRoute.routeName}</h5>
+                <p className="text-sm text-gray-600">
+                  <Navigation className="w-4 h-4 inline mr-1" />
+                  {selectedRoute.startPoint} → {selectedRoute.endPoint}
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-sm font-medium text-gray-900">₹{selectedRoute.fare}</div>
+                <div className="text-xs text-gray-500">{selectedRoute.estimatedTime}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Stop Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {filteredStops.length > 0 ? (
+              filteredStops.map((stop) => (
+                <EnhancedStopCard
+                  key={stop.id}
+                  stop={stop}
+                  isSelected={selectedStop?.id === stop.id}
+                  onClick={() => handleStopSelect(stop)}
+                />
+              ))
+            ) : (
+              <div className="col-span-full text-center py-6">
+                <MapPin className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-gray-500">No stops found matching your search</p>
+                <button
+                  onClick={() => setStopSearchTerm('')}
+                  className="mt-2 text-blue-600 hover:text-blue-700 text-sm font-medium"
+                >
+                  Clear search
+                </button>
+              </div>
+            )}
           </div>
         </motion.div>
       )}
@@ -486,6 +676,7 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
       {/* Action Buttons */}
       {selectedRoute && selectedStop && (
         <motion.div
+          ref={submitSectionRef}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex justify-end space-x-4 pt-4"
@@ -523,114 +714,280 @@ export default function EnrollmentDashboard({ student }: EnrollmentDashboardProp
   );
 }
 
-// Route Card Component
-function RouteCard({ route, isSelected, onClick }: {
+// Enhanced Route Card Component
+function EnhancedRouteCard({ route, isSelected, onClick, showDetails, onToggleDetails }: {
   route: Route;
   isSelected: boolean;
   onClick: () => void;
+  showDetails: boolean;
+  onToggleDetails: () => void;
 }) {
   const occupancyPercentage = ((route.capacity - route.availableSeats) / route.capacity) * 100;
+  const isPopular = route.currentPassengers > route.capacity * 0.7;
+  const isFullyBooked = route.availableSeats === 0;
   
   return (
-    <div
-      onClick={onClick}
-      className={`p-6 border-2 rounded-xl cursor-pointer transition-all duration-200 hover:shadow-lg ${
+    <motion.div
+      layout
+      className={`relative border-2 rounded-xl cursor-pointer transition-all duration-300 hover:shadow-xl ${
         isSelected 
-          ? 'border-blue-500 bg-blue-50 shadow-lg scale-105' 
-          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
-      }`}
+          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-xl scale-[1.02]' 
+          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
+      } ${isFullyBooked ? 'opacity-75' : ''}`}
+      onClick={onClick}
     >
-      <div className="flex items-center justify-between mb-2">
-        <h5 className="font-medium text-gray-900">{route.routeCode}</h5>
-        <span className="text-sm text-gray-600">₹{route.fare}</span>
-      </div>
-      
-      <p className="text-sm text-gray-600 mb-3">{route.routeName}</p>
-      
-      <div className="grid grid-cols-2 gap-2 text-xs text-gray-500 mb-3">
-        <div className="flex items-center">
-          <MapPin className="w-3 h-3 mr-1" />
-          <span>{route.startPoint}</span>
+      {/* Popular Badge */}
+      {isPopular && (
+        <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-1 rounded-full flex items-center">
+          <Star className="w-3 h-3 mr-1" />
+          Popular
         </div>
-        <div className="flex items-center">
-          <Clock className="w-3 h-3 mr-1" />
-          <span>{route.schedule?.morning?.[0] || 'N/A'}</span>
+      )}
+
+      {/* Fully Booked Badge */}
+      {isFullyBooked && (
+        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+          Full
         </div>
-      </div>
-      
-      <div className="space-y-2 mb-3">
-        <div className="flex items-center text-xs text-gray-500">
-          <span>📍 {route.startPoint} → {route.endPoint}</span>
-        </div>
-        <div className="flex items-center text-xs text-gray-500">
-          <span>🕒 {route.estimatedTime} • {route.distance}</span>
-        </div>
-        {route.stops && route.stops.length > 0 && (
-          <div className="flex items-center text-xs text-gray-500">
-            <span>🚏 {route.stops.length} stops</span>
+      )}
+
+      <div className="p-6">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex-1">
+            <div className="flex items-center space-x-2 mb-1">
+              <h5 className="font-bold text-lg text-gray-900">{route.routeCode}</h5>
+              {isSelected && <CheckCircle className="w-5 h-5 text-blue-600" />}
+            </div>
+            <p className="text-sm font-medium text-gray-700">{route.routeName}</p>
           </div>
+          <div className="text-right">
+            <div className="text-lg font-bold text-green-600">₹{route.fare}</div>
+            <div className="text-xs text-gray-500">per trip</div>
+          </div>
+        </div>
+
+        {/* Route Info */}
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center text-sm text-gray-600">
+            <Navigation className="w-4 h-4 mr-2 text-blue-500" />
+            <span className="font-medium">{route.startPoint}</span>
+            <ChevronRight className="w-4 h-4 mx-2 text-gray-400" />
+            <span className="font-medium">{route.endPoint}</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <div className="flex items-center text-gray-600">
+              <Timer className="w-4 h-4 mr-2 text-green-500" />
+              <span>{route.estimatedTime}</span>
+            </div>
+            <div className="flex items-center text-gray-600">
+              <Map className="w-4 h-4 mr-2 text-purple-500" />
+              <span>{route.distance}</span>
+            </div>
+          </div>
+
+          {route.stops && route.stops.length > 0 && (
+            <div className="flex items-center text-sm text-gray-600">
+              <MapPin className="w-4 h-4 mr-2 text-orange-500" />
+              <span>{route.stops.length} stops available</span>
+            </div>
+          )}
+        </div>
+
+        {/* Occupancy Bar */}
+        <div className="mb-4">
+          <div className="flex items-center justify-between text-sm mb-2">
+            <span className="text-gray-600">Occupancy</span>
+            <span className="font-medium text-gray-900">
+              {route.capacity - route.availableSeats}/{route.capacity}
+            </span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className={`h-3 rounded-full transition-all duration-300 ${
+                occupancyPercentage > 90 ? 'bg-red-500' :
+                occupancyPercentage > 70 ? 'bg-yellow-500' : 'bg-green-500'
+              }`}
+              style={{ width: `${occupancyPercentage}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <span>Available: {route.availableSeats}</span>
+            <span>{Math.round(occupancyPercentage)}% full</span>
+          </div>
+        </div>
+
+        {/* Details Toggle */}
+        <div className="flex items-center justify-between">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleDetails();
+            }}
+            className="flex items-center text-sm text-blue-600 hover:text-blue-700 font-medium"
+          >
+            <Eye className="w-4 h-4 mr-1" />
+            {showDetails ? 'Hide Details' : 'View Details'}
+          </button>
+          
+          {isSelected && (
+            <div className="flex items-center text-sm text-green-600 font-medium">
+              <CheckCircle className="w-4 h-4 mr-1" />
+              Selected
+            </div>
+          )}
+        </div>
+
+        {/* Expanded Details */}
+        {showDetails && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mt-4 pt-4 border-t border-gray-200"
+          >
+            <div className="space-y-3">
+              <h6 className="font-medium text-gray-900">Schedule</h6>
+              {route.schedule?.morning && (
+                <div className="text-sm text-gray-600">
+                  <div className="font-medium">Morning:</div>
+                  <div className="ml-2">{route.schedule.morning.join(', ')}</div>
+                </div>
+              )}
+              {route.schedule?.evening && (
+                <div className="text-sm text-gray-600">
+                  <div className="font-medium">Evening:</div>
+                  <div className="ml-2">{route.schedule.evening.join(', ')}</div>
+                </div>
+              )}
+              
+              {route.stops && route.stops.length > 0 && (
+                <div className="text-sm text-gray-600">
+                  <div className="font-medium">Stops:</div>
+                  <div className="ml-2 max-h-20 overflow-y-auto">
+                    {route.stops.map((stop, index) => (
+                      <div key={stop.id} className="flex items-center">
+                        <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                        {stop.name}
+                        {stop.isMajor && (
+                          <Star className="w-3 h-3 ml-1 text-yellow-500" />
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
         )}
       </div>
-      
-      <div className="flex items-center justify-between">
-        <div className="flex items-center text-xs text-gray-500">
-          <Users className="w-3 h-3 mr-1" />
-          <span>{route.capacity - route.availableSeats}/{route.capacity}</span>
-        </div>
-        <div className="w-16 bg-gray-200 rounded-full h-2">
-          <div 
-            className={`h-2 rounded-full ${
-              occupancyPercentage > 90 ? 'bg-red-500' :
-              occupancyPercentage > 70 ? 'bg-yellow-500' : 'bg-green-500'
-            }`}
-            style={{ width: `${occupancyPercentage}%` }}
-          />
-        </div>
-      </div>
-    </div>
+    </motion.div>
   );
 }
 
-// Stop Card Component
-function StopCard({ stop, isSelected, onClick }: {
+// Enhanced Stop Card Component
+function EnhancedStopCard({ stop, isSelected, onClick }: {
   stop: RouteStop;
   isSelected: boolean;
   onClick: () => void;
 }) {
   return (
-    <div
-      onClick={onClick}
-      className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 hover:shadow-md ${
+    <motion.div
+      layout
+      className={`relative border-2 rounded-lg cursor-pointer transition-all duration-300 hover:shadow-lg ${
         isSelected 
-          ? 'border-blue-500 bg-blue-50 shadow-md scale-105' 
-          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+          ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg scale-[1.02]' 
+          : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/30'
       }`}
+      onClick={onClick}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
     >
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center space-x-3">
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-            isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
-          }`}>
-            <MapPin className="w-4 h-4" />
+      {/* Major Stop Badge */}
+      {stop.isMajor && (
+        <div className="absolute -top-2 -right-2 bg-yellow-500 text-white text-xs px-2 py-1 rounded-full flex items-center">
+          <Star className="w-3 h-3 mr-1" />
+          Major
+        </div>
+      )}
+
+      <div className="p-5">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center space-x-3 flex-1">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+              isSelected ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+            }`}>
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h6 className="font-bold text-lg text-gray-900 mb-1">{stop.name}</h6>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Stop #{stop.sequence}</span>
+                {stop.isMajor && (
+                  <span className="inline-block px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">
+                    Major Stop
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div>
-            <span className="font-semibold text-gray-900 text-lg">{stop.name}</span>
-            {stop.isMajor && (
-              <span className="ml-2 inline-block px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">
-                Major Stop
-              </span>
-            )}
+          
+          {isSelected && (
+            <div className="flex items-center text-blue-600">
+              <CheckCircle className="w-5 h-5" />
+            </div>
+          )}
+        </div>
+
+        {/* Time Information */}
+        <div className="bg-gray-50 rounded-lg p-3 mb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-sm text-gray-600">
+              <Clock className="w-4 h-4 mr-2 text-green-500" />
+              <span className="font-medium">Boarding Time</span>
+            </div>
+            <div className="text-right">
+              <div className="font-bold text-gray-900">{stop.time}</div>
+              <div className="text-xs text-gray-500">Approximate</div>
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-sm font-medium text-gray-900">{stop.time}</div>
-          <div className="text-xs text-gray-500">Stop #{stop.sequence}</div>
+
+        {/* Stop Description */}
+        <div className="text-sm text-gray-600 mb-4">
+          {stop.isMajor ? (
+            <div className="flex items-start space-x-2">
+              <Star className="w-4 h-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-medium text-gray-900">Major Boarding Point</div>
+                <div>This is a primary stop with more frequent service and better accessibility.</div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-start space-x-2">
+              <MapPin className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+              <div>
+                <div className="font-medium text-gray-900">Regular Boarding Point</div>
+                <div>Standard boarding location with scheduled service.</div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Selection Status */}
+        {isSelected && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center justify-center space-x-2 text-blue-600 font-medium text-sm bg-blue-50 rounded-lg py-2"
+          >
+            <CheckCircle className="w-4 h-4" />
+            <span>Selected for boarding</span>
+          </motion.div>
+        )}
       </div>
-      
-      <div className="text-sm text-gray-600">
-        {stop.isMajor ? 'This is a major boarding point with more frequent service' : 'Regular boarding point'}
-      </div>
-    </div>
+    </motion.div>
   );
 } 

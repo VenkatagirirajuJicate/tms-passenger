@@ -159,7 +159,7 @@ const SemesterPaymentInterface = ({ studentId }: { studentId: string }) => {
 
   const fetchAvailableFees = async () => {
     try {
-      const response = await fetch(`/api/semester-payments?studentId=${studentId}&type=available`);
+      const response = await fetch(`/api/semester-payments-v2?studentId=${studentId}&type=available`);
       if (!response.ok) throw new Error('Failed to fetch available fees');
       
       const data = await response.json();
@@ -172,7 +172,7 @@ const SemesterPaymentInterface = ({ studentId }: { studentId: string }) => {
 
   const fetchPaymentHistory = async () => {
     try {
-      const response = await fetch(`/api/semester-payments?studentId=${studentId}&type=history`);
+      const response = await fetch(`/api/semester-payments-v2?studentId=${studentId}&type=history`);
       if (!response.ok) throw new Error('Failed to fetch payment history');
       
       const data = await response.json();
